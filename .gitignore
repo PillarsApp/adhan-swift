@@ -33,3 +33,5 @@ xcuserdata
 # Packages/
 .build/
 .swiftpm
+
+.DS_Store
