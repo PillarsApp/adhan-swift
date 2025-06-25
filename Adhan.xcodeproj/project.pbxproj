@@ -118,6 +118,13 @@
 		8B74F4831EF554F5006A51EE /* AdhanObjc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84369E9F1CD03D8700C34812 /* AdhanObjc.swift */; };
 		8B74F4841EF554F6006A51EE /* AdhanObjc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84369E9F1CD03D8700C34812 /* AdhanObjc.swift */; };
 		8B9180A71EA9BF83004C9E52 /* SunnahTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B9180A61EA9BF83004C9E52 /* SunnahTests.swift */; };
+		C1BC07792E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */; };
+		C1BC077A2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */; };
+		C1BC077B2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */; };
+		C1BC077C2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */; };
+		C1BC077E2E0B98A600D3D46A /* LondonTimesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC077D2E0B98A600D3D46A /* LondonTimesTests.swift */; };
+		C1BC077F2E0B98A600D3D46A /* LondonTimesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC077D2E0B98A600D3D46A /* LondonTimesTests.swift */; };
+		C1BC07802E0B98A600D3D46A /* LondonTimesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC077D2E0B98A600D3D46A /* LondonTimesTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -185,6 +192,8 @@
 		8B74F4571EF553E8006A51EE /* AdhanTests-tvOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "AdhanTests-tvOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B74F4661EF553F4006A51EE /* AdhanTests-macOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "AdhanTests-macOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B9180A61EA9BF83004C9E52 /* SunnahTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SunnahTests.swift; sourceTree = "<group>"; };
+		C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LondonPrayerTimes.swift; sourceTree = "<group>"; };
+		C1BC077D2E0B98A600D3D46A /* LondonTimesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LondonTimesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -315,6 +324,7 @@
 		84F8E1211C7AB542004C48D7 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				C1BC07782E0B982100D3D46A /* LondonPrayerTimes.swift */,
 				844EFDE9214A001600186C45 /* Units */,
 				088088832026EF270059C738 /* Astronomy */,
 				083EFC4F202815EE003F6218 /* Models */,
@@ -332,6 +342,7 @@
 		84F8E12D1C7AB542004C48D7 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				C1BC077D2E0B98A600D3D46A /* LondonTimesTests.swift */,
 				84FEFC882676ABBD001E3DF8 /* Times */,
 				84BCD1AF1CB09A7700614D12 /* TimeTests.swift */,
 				84F8E12E1C7AB542004C48D7 /* AdhanTests.swift */,
@@ -649,6 +660,7 @@
 				083EFC5D202815EE003F6218 /* Madhab.swift in Sources */,
 				083EFC65202815EE003F6218 /* Coordinates.swift in Sources */,
 				083EFC59202815EE003F6218 /* HighLatitudeRule.swift in Sources */,
+				C1BC077C2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */,
 				088088752026EE9E0059C738 /* PrayerTimes.swift in Sources */,
 				0880887A2026EEBD0059C738 /* Qibla.swift in Sources */,
 				088088852026EF4A0059C738 /* SolarTime.swift in Sources */,
@@ -666,6 +678,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1BC077E2E0B98A600D3D46A /* LondonTimesTests.swift in Sources */,
 				84BCD1B01CB09A7700614D12 /* TimeTests.swift in Sources */,
 				84F8E13E1C7AB635004C48D7 /* MathTests.swift in Sources */,
 				84F8E12F1C7AB542004C48D7 /* AdhanTests.swift in Sources */,
@@ -690,6 +703,7 @@
 				083EFC5E202815EE003F6218 /* Madhab.swift in Sources */,
 				845DA5C1214BDCA6001AF870 /* Angle.swift in Sources */,
 				845DA5C4214BDCAE001AF870 /* Minute.swift in Sources */,
+				C1BC077A2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */,
 				083EFC66202815EE003F6218 /* Coordinates.swift in Sources */,
 				083EFC5A202815EE003F6218 /* HighLatitudeRule.swift in Sources */,
 				088088762026EE9E0059C738 /* PrayerTimes.swift in Sources */,
@@ -717,6 +731,7 @@
 				083EFC5F202815EE003F6218 /* Madhab.swift in Sources */,
 				845DA5C2214BDCA7001AF870 /* Angle.swift in Sources */,
 				845DA5C5214BDCAF001AF870 /* Minute.swift in Sources */,
+				C1BC07792E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */,
 				083EFC67202815EE003F6218 /* Coordinates.swift in Sources */,
 				083EFC5B202815EE003F6218 /* HighLatitudeRule.swift in Sources */,
 				088088772026EE9E0059C738 /* PrayerTimes.swift in Sources */,
@@ -744,6 +759,7 @@
 				083EFC60202815EE003F6218 /* Madhab.swift in Sources */,
 				845DA5C3214BDCA8001AF870 /* Angle.swift in Sources */,
 				845DA5C6214BDCAF001AF870 /* Minute.swift in Sources */,
+				C1BC077B2E0B982600D3D46A /* LondonPrayerTimes.swift in Sources */,
 				083EFC68202815EE003F6218 /* Coordinates.swift in Sources */,
 				083EFC5C202815EE003F6218 /* HighLatitudeRule.swift in Sources */,
 				088088782026EE9E0059C738 /* PrayerTimes.swift in Sources */,
@@ -761,6 +777,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1BC07802E0B98A600D3D46A /* LondonTimesTests.swift in Sources */,
 				8B74F4711EF55404006A51EE /* TimeTests.swift in Sources */,
 				8B74F4741EF55404006A51EE /* MathTests.swift in Sources */,
 				8B74F4731EF55404006A51EE /* AstronomicalTests.swift in Sources */,
@@ -775,6 +792,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1BC077F2E0B98A600D3D46A /* LondonTimesTests.swift in Sources */,
 				8B74F4781EF55405006A51EE /* TimeTests.swift in Sources */,
 				8B74F47B1EF55405006A51EE /* MathTests.swift in Sources */,
 				8B74F47A1EF55405006A51EE /* AstronomicalTests.swift in Sources */,

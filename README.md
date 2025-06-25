@@ -150,6 +150,115 @@ if let sunnahTimes = SunnahTimes(from: todayPrayers) {
 }
 ```
 
+## Unified London Times
+
+For London, you can use pre-calculated authoritative prayer times instead of astronomical calculations by using the `unifiedLondonTimes` calculation method. This feature uses a JSON lookup table to provide accurate prayer times for London.
+
+### Setup
+
+First, initialize the lookup service with your JSON data:
+
+```swift
+let jsonString = """
+{
+    "city": "london",
+    "times": {
+        "2025-01-01": {
+            "date": "2025-01-01",
+            "fajr": "06:26",
+            "sunrise": "08:03",
+            "dhuhr": "12:09",
+            "asr": "13:45",
+            "maghrib": "16:04",
+            "isha": "17:41"
+        }
+    }
+}
+"""
+
+try LondonTimesLookup.initialize(with: jsonString)
+```
+
+### Loading from a JSON File
+
+You can also load the data from a .json file:
+
+```swift
+// Load from app bundle
+guard let fileURL = Bundle.main.url(forResource: "london-prayer-times", withExtension: "json") else {
+    fatalError("Could not find london-prayer-times.json in app bundle")
+}
+
+do {
+    let jsonData = try Data(contentsOf: fileURL)
+    let jsonString = String(data: jsonData, encoding: .utf8)!
+    try LondonTimesLookup.initialize(with: jsonString)
+} catch {
+    print("Error loading JSON file: \(error)")
+}
+```
+
+Or if you have the parsed JSON data:
+
+```swift
+do {
+    let jsonData = try Data(contentsOf: fileURL)
+    let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
+    if let jsonDict = jsonObject as? [String: Any] {
+        LondonTimesLookup.initialize(with: jsonDict)
+    }
+} catch {
+    print("Error loading JSON file: \(error)")
+}
+```
+
+### Usage
+
+Once initialized, use the `unifiedLondonTimes` calculation method like any other:
+
+```swift
+let coordinates = Coordinates(latitude: 51.5074, longitude: -0.1278) // London
+let date = DateComponents(year: 2025, month: 1, day: 1)
+let params = CalculationMethod.unifiedLondonTimes.params
+
+let prayerTimes = PrayerTimes(coordinates: coordinates, date: date, calculationParameters: params)
+```
+
+### With Adjustments
+
+Time adjustments work the same way as with calculated methods:
+
+```swift
+var params = CalculationMethod.unifiedLondonTimes.params
+params.adjustments.fajr = 5 // Add 5 minutes to Fajr time
+params.adjustments.isha = -3 // Subtract 3 minutes from Isha time
+
+let prayerTimes = PrayerTimes(coordinates: coordinates, date: date, calculationParameters: params)
+```
+
+### JSON Data Format
+
+The JSON data should follow this structure:
+
+```json
+{
+    "city": "london",
+    "times": {
+        "YYYY-MM-DD": {
+            "date": "YYYY-MM-DD",
+            "fajr": "HH:mm",
+            "sunrise": "HH:mm", 
+            "dhuhr": "HH:mm",
+            "asr": "HH:mm",
+            "maghrib": "HH:mm",
+            "isha": "HH:mm"
+        }
+    }
+}
+```
+
+**Note**: The lookup method will return `nil` if prayer times for the requested date are not available in the JSON data.
+
 ## Qibla Direction
 
 Get the direction, in degrees from North, of the Qibla from a given set of coordinates.

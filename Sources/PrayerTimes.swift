@@ -44,6 +44,23 @@ public struct PrayerTimes {
     public let calculationParameters: CalculationParameters
 
     public init?(coordinates: Coordinates, date: DateComponents, calculationParameters: CalculationParameters) {
+        
+        // Special handling for London lookup times
+        if calculationParameters.method == .unifiedLondonTimes {
+            guard let londonTimes = Self.initializeFromLondonLookup(date: date, calculationParameters: calculationParameters) else {
+                return nil
+            }
+            self.fajr = londonTimes.fajr
+            self.sunrise = londonTimes.sunrise
+            self.dhuhr = londonTimes.dhuhr
+            self.asr = londonTimes.asr
+            self.maghrib = londonTimes.maghrib
+            self.isha = londonTimes.isha
+            self.coordinates = coordinates
+            self.date = date
+            self.calculationParameters = calculationParameters
+            return
+        }
 
         var tempFajr: Date? = nil
         var tempSunrise: Date? = nil
@@ -232,5 +249,53 @@ public struct PrayerTimes {
         case .isha:
             return isha
         }
+    }
+    
+    private static func initializeFromLondonLookup(date: DateComponents, calculationParameters: CalculationParameters) -> (fajr: Date, sunrise: Date, dhuhr: Date, asr: Date, maghrib: Date, isha: Date)? {
+        guard let londonTimes = LondonTimesLookup.getTimes(for: date) else {
+            return nil
+        }
+        
+        guard let tempFajr = londonTimes.parseTime(londonTimes.fajr, for: date),
+              let tempSunrise = londonTimes.parseTime(londonTimes.sunrise, for: date),
+              let tempDhuhr = londonTimes.parseTime(londonTimes.dhuhr, for: date),
+              let tempAsr = londonTimes.parseTime(londonTimes.asr, for: date),
+              let tempMaghrib = londonTimes.parseTime(londonTimes.maghrib, for: date),
+              let tempIsha = londonTimes.parseTime(londonTimes.isha, for: date) else {
+            return nil
+        }
+        
+        // Apply adjustments and rounding (same as astronomical calculations)
+        let fajr = tempFajr
+            .addingTimeInterval(calculationParameters.adjustments.fajr.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        let sunrise = tempSunrise
+            .addingTimeInterval(calculationParameters.adjustments.sunrise.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        let dhuhr = tempDhuhr
+            .addingTimeInterval(calculationParameters.adjustments.dhuhr.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        let asr = tempAsr
+            .addingTimeInterval(calculationParameters.adjustments.asr.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        let maghrib = tempMaghrib
+            .addingTimeInterval(calculationParameters.adjustments.maghrib.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        let isha = tempIsha
+            .addingTimeInterval(calculationParameters.adjustments.isha.timeInterval)
+            .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)
+            .roundedMinute(rounding: calculationParameters.rounding)
+        
+        return (fajr: fajr, sunrise: sunrise, dhuhr: dhuhr, asr: asr, maghrib: maghrib, isha: isha)
     }
 }
