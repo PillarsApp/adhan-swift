@@ -88,6 +88,11 @@ import Foundation
 
   Defaults to angles of 0°, should generally be used for making a custom method and setting your own values.
 
+  **unifiedLondonTimes**
+
+  Uses pre-calculated prayer times from a JSON lookup table specifically for London.
+  Bypasses astronomical calculations entirely and uses authoritative prayer time data.
+
 */
 public enum CalculationMethod: String, Codable, CaseIterable {
 
@@ -129,6 +134,9 @@ public enum CalculationMethod: String, Codable, CaseIterable {
 
     // Other
     case other
+    
+    // Unified London Times
+    case unifiedLondonTimes
 
     public var params: CalculationParameters {
         switch(self) {
@@ -174,6 +182,8 @@ public enum CalculationMethod: String, Codable, CaseIterable {
             params.methodAdjustments = PrayerAdjustments(fajr: 0, sunrise: -7, dhuhr: 5, asr: 4, maghrib: 7, isha: 0)
             return params
         case .other:
+            return CalculationParameters(fajrAngle: 0, ishaAngle: 0, method: self)
+        case .unifiedLondonTimes:
             return CalculationParameters(fajrAngle: 0, ishaAngle: 0, method: self)
         }
     }
