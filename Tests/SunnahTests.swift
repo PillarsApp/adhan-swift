@@ -25,7 +25,7 @@ class SunnahTests: XCTestCase {
         comps1.day = 12
         
         let todayPrayers = PrayerTimes(coordinates: coordinates, date: comps1, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.maghrib), "7/12/15, 8:32 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.maghrib)), "7/12/15, 8:32 PM")
         
         var comps2 = DateComponents()
         comps2.year = 2015
@@ -33,7 +33,7 @@ class SunnahTests: XCTestCase {
         comps2.day = 13
         
         let tomorrowPrayers = PrayerTimes(coordinates: coordinates, date: comps2, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.fajr), "7/13/15, 4:43 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.fajr)), "7/13/15, 4:43 AM")
         
         /*
          Night: 8:32 PM to 4:43 AM
@@ -42,8 +42,8 @@ class SunnahTests: XCTestCase {
          Last Third = 8:32 PM + 5 hours, 27.3 minutes = 1:59:20 AM which rounds to 1:59 AM
         */
         let sunnahTimes = SunnahTimes(from: todayPrayers)!
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.middleOfTheNight), "7/13/15, 12:38 AM")
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight), "7/13/15, 1:59 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.middleOfTheNight)), "7/13/15, 12:38 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight)), "7/13/15, 1:59 AM")
     }
     
     func testSunnahTimesLondon() {
@@ -60,7 +60,7 @@ class SunnahTests: XCTestCase {
         comps1.day = 31
         
         let todayPrayers = PrayerTimes(coordinates: coordinates, date: comps1, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.maghrib), "12/31/16, 4:04 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.maghrib)), "12/31/16, 4:04 PM")
         
         var comps2 = DateComponents()
         comps2.year = 2017
@@ -68,7 +68,7 @@ class SunnahTests: XCTestCase {
         comps2.day = 1
         
         let tomorrowPrayers = PrayerTimes(coordinates: coordinates, date: comps2, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.fajr), "1/1/17, 6:25 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.fajr)), "1/1/17, 6:25 AM")
         
         /*
          Night: 4:04 PM to 6:25 AM
@@ -77,8 +77,8 @@ class SunnahTests: XCTestCase {
          Last Third = 4:04 PM + 9 hours, 34 minutes = 1:38 AM
         */
         let sunnahTimes = SunnahTimes(from: todayPrayers)!
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.middleOfTheNight), "12/31/16, 11:15 PM")
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight), "1/1/17, 1:38 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.middleOfTheNight)), "12/31/16, 11:15 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight)), "1/1/17, 1:38 AM")
     }
     
     func testSunnahTimesOslo() {
@@ -96,7 +96,7 @@ class SunnahTests: XCTestCase {
         comps1.day = 1
         
         let todayPrayers = PrayerTimes(coordinates: coordinates, date: comps1, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.maghrib), "7/1/16, 10:41 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.maghrib)), "7/1/16, 10:41 PM")
         
         var comps2 = DateComponents()
         comps2.year = 2016
@@ -104,7 +104,7 @@ class SunnahTests: XCTestCase {
         comps2.day = 2
         
         let tomorrowPrayers = PrayerTimes(coordinates: coordinates, date: comps2, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.fajr), "7/2/16, 1:20 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.fajr)), "7/2/16, 1:20 AM")
         
         /*
          Night: 10:41 PM to 1:20 AM
@@ -114,8 +114,8 @@ class SunnahTests: XCTestCase {
         */
         
         let sunnahTimes = SunnahTimes(from: todayPrayers)!
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.middleOfTheNight), "7/2/16, 12:01 AM")
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight), "7/2/16, 12:27 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.middleOfTheNight)), "7/2/16, 12:01 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight)), "7/2/16, 12:27 AM")
     }
     
     func testSunnahTimesDST1() {
@@ -132,8 +132,8 @@ class SunnahTests: XCTestCase {
         comps1.day = 11
         
         let todayPrayers = PrayerTimes(coordinates: coordinates, date: comps1, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.fajr), "3/11/17, 5:14 AM")
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.maghrib), "3/11/17, 6:13 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.fajr)), "3/11/17, 5:14 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.maghrib)), "3/11/17, 6:13 PM")
         
         var comps2 = DateComponents()
         comps2.year = 2017
@@ -141,8 +141,8 @@ class SunnahTests: XCTestCase {
         comps2.day = 12
         
         let tomorrowPrayers = PrayerTimes(coordinates: coordinates, date: comps2, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.fajr), "3/12/17, 6:13 AM")
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.maghrib), "3/12/17, 7:14 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.fajr)), "3/12/17, 6:13 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.maghrib)), "3/12/17, 7:14 PM")
         
         /*
          Night: 6:13 PM PST to 6:13 AM PDT
@@ -151,8 +151,8 @@ class SunnahTests: XCTestCase {
          Last Third = 6:13 PM + 7 hours, 20 minutes = 1:33 AM
         */
         let sunnahTimes = SunnahTimes(from: todayPrayers)!
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.middleOfTheNight), "3/11/17, 11:43 PM")
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight), "3/12/17, 1:33 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.middleOfTheNight)), "3/11/17, 11:43 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight)), "3/12/17, 1:33 AM")
     }
     
     func testSunnahTimesDST2() {
@@ -170,8 +170,8 @@ class SunnahTests: XCTestCase {
         comps1.day = 24
         
         let todayPrayers = PrayerTimes(coordinates: coordinates, date: comps1, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.fajr), "10/24/15, 6:38 AM")
-        XCTAssertEqual(dateFormatter.string(from: todayPrayers.maghrib), "10/24/15, 6:45 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.fajr)), "10/24/15, 6:38 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: todayPrayers.maghrib)), "10/24/15, 6:45 PM")
         
         var comps2 = DateComponents()
         comps2.year = 2015
@@ -179,8 +179,8 @@ class SunnahTests: XCTestCase {
         comps2.day = 25
         
         let tomorrowPrayers = PrayerTimes(coordinates: coordinates, date: comps2, calculationParameters: params)!
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.fajr), "10/25/15, 5:40 AM")
-        XCTAssertEqual(dateFormatter.string(from: tomorrowPrayers.maghrib), "10/25/15, 5:43 PM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.fajr)), "10/25/15, 5:40 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: tomorrowPrayers.maghrib)), "10/25/15, 5:43 PM")
         
         /*
          Night: 6:45 PM CEST to 5:40 AM CET
@@ -189,7 +189,7 @@ class SunnahTests: XCTestCase {
          Last Third = 6:45 PM + 7 hours, 56 minutes, 40 seconds = 2:41:40 AM which rounds to 2:42 AM  
         */
         let sunnahTimes = SunnahTimes(from: todayPrayers)!
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.middleOfTheNight), "10/25/15, 12:43 AM")
-        XCTAssertEqual(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight), "10/25/15, 2:42 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.middleOfTheNight)), "10/25/15, 12:43 AM")
+        XCTAssertEqual(normalizeTimeString(dateFormatter.string(from: sunnahTimes.lastThirdOfTheNight)), "10/25/15, 2:42 AM")
     }
 }

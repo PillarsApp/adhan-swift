@@ -68,3 +68,5 @@ Swift/Example/Carthage Example/Carthage
 
 fastlane/report.xml
 fastlane/screenshots
+
+.DS_Store

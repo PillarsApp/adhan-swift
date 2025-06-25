@@ -10,6 +10,13 @@
 #import <Adhan/Adhan-Swift.h>
 #import <CoreLocation/CoreLocation.h>
 
+// Helper function to normalize Unicode spaces in time strings
+NSString* normalizeTimeString(NSString* timeString) {
+    NSString* normalized = [timeString stringByReplacingOccurrencesOfString:@"\u202F" withString:@" "]; // Replace narrow no-break space with regular space
+    normalized = [normalized stringByReplacingOccurrencesOfString:@"\u00A0" withString:@" "]; // Replace non-breaking space with regular space
+    return normalized;
+}
+
 @interface ObjcTests : XCTestCase
 
 @end
@@ -31,12 +38,12 @@
     formatter.timeZone = [[NSTimeZone alloc] initWithName:@"America/New_York"];
     formatter.timeStyle = NSDateFormatterShortStyle;
     
-    XCTAssertEqualObjects([formatter stringFromDate:p.fajr], @"4:42 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p.sunrise], @"6:08 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p.dhuhr], @"1:21 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p.asr], @"6:22 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p.maghrib], @"8:32 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p.isha], @"9:57 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.fajr]), @"4:42 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.sunrise]), @"6:08 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.dhuhr]), @"1:21 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.asr]), @"6:22 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.maghrib]), @"8:32 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p.isha]), @"9:57 PM");
 }
 
 - (void)testShafaqInterface {
@@ -54,19 +61,19 @@
     
     BAPrayerTimes *p1 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:43.494 longitude:-79.844] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p1.isha], @"6:27 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.isha]), @"6:27 PM");
     
     params.shafaq = BAShafaqAhmer;
     
     BAPrayerTimes *p2 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:43.494 longitude:-79.844] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p2.isha], @"6:07 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.isha]), @"6:07 PM");
     
     params.shafaq = BAShafaqAbyad;
     
     BAPrayerTimes *p3 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:43.494 longitude:-79.844] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p3.isha], @"6:28 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.isha]), @"6:28 PM");
 }
 
 - (void)testRoundingInterface {
@@ -84,34 +91,34 @@
     
     BAPrayerTimes *p1 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:35.7750 longitude:-78.6389] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p1.fajr], @"4:42 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p1.sunrise], @"6:08 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p1.dhuhr], @"1:21 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p1.asr], @"6:22 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p1.maghrib], @"8:32 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p1.isha], @"9:57 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.fajr]), @"4:42 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.sunrise]), @"6:08 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.dhuhr]), @"1:21 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.asr]), @"6:22 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.maghrib]), @"8:32 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p1.isha]), @"9:57 PM");
     
     params.rounding = BARoundingUp;
     
     BAPrayerTimes *p2 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:35.7750 longitude:-78.6389] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p2.fajr], @"4:43 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p2.sunrise], @"6:08 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p2.dhuhr], @"1:22 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p2.asr], @"6:23 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p2.maghrib], @"8:33 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p2.isha], @"9:58 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.fajr]), @"4:43 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.sunrise]), @"6:08 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.dhuhr]), @"1:22 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.asr]), @"6:23 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.maghrib]), @"8:33 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p2.isha]), @"9:58 PM");
     
     params.rounding = BARoundingNone;
     
     BAPrayerTimes *p3 = [[BAPrayerTimes alloc] initWithCoordinates:[[BACoordinates alloc] initWithLatitude:35.7750 longitude:-78.6389] date:date calculationParameters:params];
     
-    XCTAssertEqualObjects([formatter stringFromDate:p3.fajr], @"4:42 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p3.sunrise], @"6:07 AM");
-    XCTAssertEqualObjects([formatter stringFromDate:p3.dhuhr], @"1:21 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p3.asr], @"6:22 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p3.maghrib], @"8:32 PM");
-    XCTAssertEqualObjects([formatter stringFromDate:p3.isha], @"9:57 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.fajr]), @"4:42 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.sunrise]), @"6:07 AM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.dhuhr]), @"1:21 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.asr]), @"6:22 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.maghrib]), @"8:32 PM");
+    XCTAssertEqualObjects(normalizeTimeString([formatter stringFromDate:p3.isha]), @"9:57 PM");
 }
 
 - (void)testTimeForPrayer {
