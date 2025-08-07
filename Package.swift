@@ -20,7 +20,8 @@ let package = Package(
     targets: [
         .target(
             name: "Adhan",
-            path: "Sources"
+            path: "Sources",
+            resources: [.copy("Resources/LondonPrayerTimes.json")]
         ),
         .testTarget(
             name: "Tests",
