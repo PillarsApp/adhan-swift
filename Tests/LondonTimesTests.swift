@@ -248,6 +248,51 @@ class LondonTimesTests: XCTestCase {
         XCTAssertEqual(fajrTime, "6:26 AM")
     }
     
+    func testLondonTimezoneHandling() {
+        // Test that times are correctly converted from London local time to UTC
+        // January 1st is in GMT (UTC+0)
+        let winterDate = DateComponents(year: 2025, month: 1, day: 1)
+        let winterTimes = LondonPrayerTimes(
+            date: "2025-01-01",
+            fajr: "06:26",
+            sunrise: "08:03",
+            dhuhr: "12:09",
+            asr: "13:45",
+            maghrib: "16:04",
+            isha: "17:41"
+        )
+        
+        // Parse winter time (GMT)
+        let winterFajr = winterTimes.parseTime("06:26", for: winterDate)
+        XCTAssertNotNil(winterFajr)
+        
+        // In January, London is GMT (UTC+0), so 06:26 London = 06:26 UTC
+        let utcFormatter = DateFormatter()
+        utcFormatter.dateFormat = "HH:mm"
+        utcFormatter.timeZone = TimeZone(identifier: "UTC")
+        XCTAssertEqual(utcFormatter.string(from: winterFajr!), "06:26")
+        
+        // Test summer date (BST - British Summer Time, UTC+1)
+        // Note: BST typically runs from last Sunday in March to last Sunday in October
+        let summerDate = DateComponents(year: 2025, month: 7, day: 1)
+        let summerTimes = LondonPrayerTimes(
+            date: "2025-07-01",
+            fajr: "02:47",
+            sunrise: "04:47",
+            dhuhr: "13:10",
+            asr: "17:17",
+            maghrib: "21:21",
+            isha: "23:21"
+        )
+        
+        // Parse summer time (BST)
+        let summerFajr = summerTimes.parseTime("02:47", for: summerDate)
+        XCTAssertNotNil(summerFajr)
+        
+        // In July, London is BST (UTC+1), so 02:47 London = 01:47 UTC
+        XCTAssertEqual(utcFormatter.string(from: summerFajr!), "01:47")
+    }
+    
     func testInvalidJSONHandling() {
         let invalidJSON = "{ invalid json }"
         
