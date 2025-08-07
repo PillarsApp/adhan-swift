@@ -67,6 +67,7 @@ public struct LondonPrayerTimes {
     
     /**
      Parse a time string (HH:mm) into a Date object for the given date components.
+     The time string is interpreted as London local time and converted to UTC.
      */
     public func parseTime(_ timeString: String, for dateComponents: DateComponents) -> Date? {
         let parts = timeString.split(separator: ":")
@@ -79,8 +80,18 @@ public struct LondonPrayerTimes {
             return nil
         }
         
-        let calendar = Calendar.gregorianUTC
-        return calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
+        // Create calendar with London timezone to interpret the times correctly
+        var londonCalendar = Calendar(identifier: .gregorian)
+        guard let londonTimeZone = TimeZone(identifier: "Europe/London") else {
+            return nil
+        }
+        londonCalendar.timeZone = londonTimeZone
+        
+        // Create date in London timezone (handles GMT/BST automatically)
+        let londonDateComponents = DateComponents(year: year, month: month, day: day, hour: hour, minute: minute)
+        
+        // This returns the Date in UTC, properly accounting for London's timezone offset
+        return londonCalendar.date(from: londonDateComponents)
     }
 }
 
