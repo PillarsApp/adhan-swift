@@ -35,7 +35,7 @@ For [SPM](https://swift.org/package-manager/) add the following to your `Package
 ```swift
 // swift-tools-version:4.2
 dependencies: [
-    .package(url: "https://github.com/batoulapps/adhan-swift", .branch("main")),
+    .package(url: "https://github.com/batoulapps/adhan-swift", from: "1.3.2"),
 ]
 ```
 
@@ -152,69 +152,11 @@ if let sunnahTimes = SunnahTimes(from: todayPrayers) {
 
 ## Unified London Times
 
-For London, you can use pre-calculated authoritative prayer times instead of astronomical calculations by using the `unifiedLondonTimes` calculation method. This feature uses a JSON lookup table to provide accurate prayer times for London.
-
-### Setup
-
-First, initialize the lookup service with your JSON data:
-
-```swift
-let jsonString = """
-{
-    "city": "london",
-    "times": {
-        "2025-01-01": {
-            "date": "2025-01-01",
-            "fajr": "06:26",
-            "sunrise": "08:03",
-            "dhuhr": "12:09",
-            "asr": "13:45",
-            "maghrib": "16:04",
-            "isha": "17:41"
-        }
-    }
-}
-"""
-
-try LondonTimesLookup.initialize(with: jsonString)
-```
-
-### Loading from a JSON File
-
-You can also load the data from a .json file:
-
-```swift
-// Load from app bundle
-guard let fileURL = Bundle.main.url(forResource: "london-prayer-times", withExtension: "json") else {
-    fatalError("Could not find london-prayer-times.json in app bundle")
-}
-
-do {
-    let jsonData = try Data(contentsOf: fileURL)
-    let jsonString = String(data: jsonData, encoding: .utf8)!
-    try LondonTimesLookup.initialize(with: jsonString)
-} catch {
-    print("Error loading JSON file: \(error)")
-}
-```
-
-Or if you have the parsed JSON data:
-
-```swift
-do {
-    let jsonData = try Data(contentsOf: fileURL)
-    let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
-    if let jsonDict = jsonObject as? [String: Any] {
-        LondonTimesLookup.initialize(with: jsonDict)
-    }
-} catch {
-    print("Error loading JSON file: \(error)")
-}
-```
+For London, you can use pre-calculated authoritative prayer times instead of astronomical calculations by using the `unifiedLondonTimes` calculation method. This feature uses the London Unified Prayer Timetable data that is embedded in the library (as of version 1.3.1).
 
 ### Usage
 
-Once initialized, use the `unifiedLondonTimes` calculation method like any other:
+The London times data is automatically loaded, so you can use the `unifiedLondonTimes` calculation method directly:
 
 ```swift
 let coordinates = Coordinates(latitude: 51.5074, longitude: -0.1278) // London
@@ -234,6 +176,32 @@ params.adjustments.fajr = 5 // Add 5 minutes to Fajr time
 params.adjustments.isha = -3 // Subtract 3 minutes from Isha time
 
 let prayerTimes = PrayerTimes(coordinates: coordinates, date: date, calculationParameters: params)
+```
+
+### Custom Data (Optional)
+
+If you need to override the embedded data with custom London times, you can still initialize the lookup manually:
+
+```swift
+// Load custom JSON string
+let customJsonString = """
+{
+    "city": "london",
+    "times": {
+        "2025-01-01": {
+            "date": "2025-01-01",
+            "fajr": "06:26",
+            "sunrise": "08:03",
+            "dhuhr": "12:09",
+            "asr": "13:45",
+            "maghrib": "16:04",
+            "isha": "17:41"
+        }
+    }
+}
+"""
+
+try LondonTimesLookup.initialize(with: customJsonString)
 ```
 
 ### JSON Data Format
