@@ -226,15 +226,26 @@ class LondonTimesTests: XCTestCase {
         XCTAssertEqual(fajrTime, "6:31 AM") // 6:26 + 5 minutes = 6:31
     }
     
-    func testPrayerTimesWithLondonLookupFailsWithoutData() {
-        // Don't initialize lookup data
+    func testPrayerTimesWithLondonLookupWorksWithEmbeddedData() {
+        // Test that London times work without explicit initialization (using embedded data)
+        LondonTimesLookup.clearCache()
+        
         let coordinates = Coordinates(latitude: 51.5074, longitude: -0.1278)
         let date = DateComponents(year: 2025, month: 1, day: 1)
         let params = CalculationMethod.unifiedLondonTimes.params
         
         let prayerTimes = PrayerTimes(coordinates: coordinates, date: date, calculationParameters: params)
         
-        XCTAssertNil(prayerTimes)
+        // Should work with embedded data
+        XCTAssertNotNil(prayerTimes)
+        
+        // Verify the times are correct from embedded data
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.timeZone = TimeZone(identifier: "Europe/London")
+        
+        let fajrTime = normalizeTimeString(formatter.string(from: prayerTimes!.fajr))
+        XCTAssertEqual(fajrTime, "6:26 AM")
     }
     
     func testInvalidJSONHandling() {

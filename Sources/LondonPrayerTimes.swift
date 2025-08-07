@@ -88,10 +88,20 @@ public struct LondonPrayerTimes {
  Static lookup service for London prayer times from JSON data.
  */
 public class LondonTimesLookup {
-    private static var cachedData: [String: Any]?
+    private static var cachedData: [String: Any]? = {
+        // Load embedded JSON data automatically
+        guard let url = Bundle.module.url(forResource: "LondonPrayerTimes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data, options: []),
+              let jsonDict = json as? [String: Any] else {
+            return nil
+        }
+        return jsonDict
+    }()
     
     /**
      Initialize the lookup service with JSON string data.
+     This method is kept for backward compatibility but is no longer necessary.
      */
     public static func initialize(with jsonString: String) throws {
         guard let data = jsonString.data(using: .utf8) else {
@@ -111,6 +121,7 @@ public class LondonTimesLookup {
     
     /**
      Initialize the lookup service with pre-parsed JSON data.
+     This method is kept for backward compatibility but is no longer necessary.
      */
     public static func initialize(with data: [String: Any]) {
         cachedData = data
@@ -118,6 +129,7 @@ public class LondonTimesLookup {
     
     /**
      Get London prayer times for a specific date.
+     The JSON data is automatically loaded from the embedded resource.
      */
     public static func getTimes(for dateComponents: DateComponents) -> LondonPrayerTimes? {
         guard let data = cachedData else {
@@ -142,10 +154,17 @@ public class LondonTimesLookup {
     }
     
     /**
-     Clear cached data.
+     Clear cached data and reload from embedded resource.
      */
     public static func clearCache() {
         cachedData = nil
+        // Reload from embedded resource
+        if let url = Bundle.module.url(forResource: "LondonPrayerTimes", withExtension: "json"),
+           let data = try? Data(contentsOf: url),
+           let json = try? JSONSerialization.jsonObject(with: data, options: []),
+           let jsonDict = json as? [String: Any] {
+            cachedData = jsonDict
+        }
     }
 }
 

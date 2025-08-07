@@ -15,7 +15,8 @@ let package = Package(
         .target(
             name: "Adhan",
             path: "Sources",
-            exclude: ["AdhanObjc.swift", "Info.plist"]
+            exclude: ["AdhanObjc.swift", "Info.plist"],
+            resources: [.copy("Resources/LondonPrayerTimes.json")]
         ),
         .testTarget(
             name: "Tests",
