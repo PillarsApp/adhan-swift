@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Adhan'
-  s.version          = '1.4.0'
+  s.version          = '1.5.0'
   s.summary          = 'High precision Islamic prayer time library.'
 
   s.description      = <<-DESC
