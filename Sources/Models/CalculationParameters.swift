@@ -25,9 +25,7 @@
 
 import Foundation
 
-/**
-  Customizable parameters for calculating prayer times
- */
+/// Customizable parameters for calculating prayer times
 public struct CalculationParameters: Codable, Equatable {
     public var method: CalculationMethod = .other
     public var fajrAngle: Double
@@ -39,6 +37,8 @@ public struct CalculationParameters: Codable, Equatable {
     public var adjustments: PrayerAdjustments = PrayerAdjustments()
     public var rounding: Rounding = .nearest
     public var shafaq: Shafaq = .general
+    /// Nil selects last-valid-day Fajr and longest-day sunset plus 65 minutes for Isha.
+    public var wifaqulOptions: WifaqulOptions? = nil
     var methodAdjustments: PrayerAdjustments = PrayerAdjustments()
 
     init(fajrAngle: Double, ishaAngle: Double) {
@@ -60,7 +60,7 @@ public struct CalculationParameters: Codable, Equatable {
         self.init(fajrAngle: fajrAngle, ishaInterval: ishaInterval)
         self.method = method
     }
-    
+
     init(fajrAngle: Double, maghribAngle: Double, ishaAngle: Double, method: CalculationMethod) {
         self.init(fajrAngle: fajrAngle, ishaAngle: ishaAngle, method: method)
         self.maghribAngle = maghribAngle
@@ -71,9 +71,9 @@ public struct CalculationParameters: Codable, Equatable {
 
         switch currentHighLatitudeRule {
         case .middleOfTheNight:
-            return (1/2, 1/2)
+            return (1 / 2, 1 / 2)
         case .seventhOfTheNight:
-            return (1/7, 1/7)
+            return (1 / 7, 1 / 7)
         case .twilightAngle:
             return (self.fajrAngle / 60, self.ishaAngle / 60)
         }
