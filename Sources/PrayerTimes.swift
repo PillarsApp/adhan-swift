@@ -25,12 +25,10 @@
 
 import Foundation
 
-/**
-  Prayer times for a location and date using the given calculation parameters.
-
-  All prayer times are in UTC and should be displayed using a DateFormatter that
-  has the correct timezone set.
- */
+/// Prayer times for a location and date using the given calculation parameters.
+///
+/// All prayer times are in UTC and should be displayed using a DateFormatter that
+/// has the correct timezone set.
 public struct PrayerTimes {
     public let fajr: Date
     public let sunrise: Date
@@ -44,10 +42,24 @@ public struct PrayerTimes {
     public let calculationParameters: CalculationParameters
 
     public init?(coordinates: Coordinates, date: DateComponents, calculationParameters: CalculationParameters) {
-        
+
+        let date =
+            calculationParameters.method == .wifaqulUlama
+            ? DateComponents(year: date.year, month: date.month, day: date.day)
+            : date
+        if calculationParameters.method == .wifaqulUlama {
+            guard calculationParameters.fajrAngle == 18, calculationParameters.ishaAngle == 18,
+                calculationParameters.ishaInterval == 0, calculationParameters.maghribAngle == nil
+            else {
+                return nil
+            }
+        }
         // Special handling for London lookup times
         if calculationParameters.method == .unifiedLondonTimes {
-            guard let londonTimes = Self.initializeFromLondonLookup(date: date, calculationParameters: calculationParameters) else {
+            guard
+                let londonTimes = Self.initializeFromLondonLookup(
+                    date: date, calculationParameters: calculationParameters)
+            else {
                 return nil
             }
             self.fajr = londonTimes.fajr
@@ -73,7 +85,8 @@ public struct PrayerTimes {
         guard let prayerDate = cal.date(from: date),
             let tomorrowDate = cal.date(byAdding: .day, value: 1, to: prayerDate),
             let year = date.year,
-            let dayOfYear = cal.ordinality(of: .day, in: .year, for: prayerDate) else {
+            let dayOfYear = cal.ordinality(of: .day, in: .year, for: prayerDate)
+        else {
             return nil
         }
 
@@ -83,13 +96,15 @@ public struct PrayerTimes {
         self.date = date
         self.calculationParameters = calculationParameters
 
-        guard let solarTime = SolarTime(date: date, coordinates: coordinates),
-            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates),
+        let isWifaqul = calculationParameters.method == .wifaqulUlama
+        guard let solarTime = SolarTime(date: date, coordinates: coordinates, preserveSolarDate: isWifaqul),
+            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates, preserveSolarDate: isWifaqul),
             let sunriseDate = cal.date(from: solarTime.sunrise),
             let sunsetDate = cal.date(from: solarTime.sunset),
-            let tomorrowSunrise = cal.date(from: tomorrowSolarTime.sunrise) else {
-                // unable to determine transit, sunrise or sunset aborting calculations
-                return nil
+            let tomorrowSunrise = cal.date(from: tomorrowSolarTime.sunrise)
+        else {
+            // unable to determine transit, sunrise or sunset aborting calculations
+            return nil
         }
 
         tempSunrise = cal.date(from: solarTime.sunrise)
@@ -103,68 +118,90 @@ public struct PrayerTimes {
         // get night length
         let night = tomorrowSunrise.timeIntervalSince(sunsetDate)
 
-        if let fajrComponents = solarTime.timeForSolarAngle(Angle(-calculationParameters.fajrAngle), afterTransit: false) {
-            tempFajr = cal.date(from: fajrComponents)
-        }
-
-        // special case for moonsighting committee at or above latitude 55
-        if calculationParameters.method == .moonsightingCommittee && coordinates.latitude >= 55 {
-            let nightFraction = night / 7
-            tempFajr = sunriseDate.addingTimeInterval(-nightFraction)
-        }
-
-        let safeFajr: Date = {
-            guard calculationParameters.method != .moonsightingCommittee else {
-                return Astronomical.seasonAdjustedMorningTwilight(latitude: coordinates.latitude, day: dayOfYear, year: year, sunrise: sunriseDate)
+        if calculationParameters.method == .wifaqulUlama {
+            guard
+                let twilight = WifaqulTwilight.calculate(
+                    date: prayerDate, coordinates: coordinates, solar: solarTime,
+                    sunrise: sunriseDate, sunset: sunsetDate, tomorrowSunrise: tomorrowSunrise,
+                    options: calculationParameters.wifaqulOptions ?? WifaqulOptions()
+                )
+            else {
+                return nil
             }
-
-            let portion = calculationParameters.nightPortions(using: coordinates).fajr
-            let nightFraction = portion * night
-
-            return sunriseDate.addingTimeInterval(-nightFraction)
-        }()
-
-        if tempFajr == nil || tempFajr?.compare(safeFajr) == .orderedAscending {
-            tempFajr = safeFajr
-        }
-
-        // Isha calculation with check against safe value
-        if calculationParameters.ishaInterval > 0 {
-            tempIsha = tempMaghrib?.addingTimeInterval(calculationParameters.ishaInterval.timeInterval)
+            tempFajr = twilight.fajr
+            tempIsha = twilight.isha
         } else {
-            if let ishaComponents = solarTime.timeForSolarAngle(Angle(-calculationParameters.ishaAngle), afterTransit: true) {
-                tempIsha = cal.date(from: ishaComponents)
+            if let fajrComponents = solarTime.timeForSolarAngle(
+                Angle(-calculationParameters.fajrAngle), afterTransit: false)
+            {
+                tempFajr = cal.date(from: fajrComponents)
             }
 
             // special case for moonsighting committee at or above latitude 55
             if calculationParameters.method == .moonsightingCommittee && coordinates.latitude >= 55 {
                 let nightFraction = night / 7
-                tempIsha = sunsetDate.addingTimeInterval(nightFraction)
+                tempFajr = sunriseDate.addingTimeInterval(-nightFraction)
             }
 
-            let safeIsha: Date = {
+            let safeFajr: Date = {
                 guard calculationParameters.method != .moonsightingCommittee else {
-                    return Astronomical.seasonAdjustedEveningTwilight(latitude: coordinates.latitude, day: dayOfYear, year: year, sunset: sunsetDate, shafaq: calculationParameters.shafaq)
+                    return Astronomical.seasonAdjustedMorningTwilight(
+                        latitude: coordinates.latitude, day: dayOfYear, year: year, sunrise: sunriseDate)
                 }
 
-                let portion = calculationParameters.nightPortions(using: coordinates).isha
+                let portion = calculationParameters.nightPortions(using: coordinates).fajr
                 let nightFraction = portion * night
 
-                return sunsetDate.addingTimeInterval(nightFraction)
+                return sunriseDate.addingTimeInterval(-nightFraction)
             }()
 
-            if tempIsha == nil || tempIsha?.compare(safeIsha) == .orderedDescending {
-                tempIsha = safeIsha
+            if tempFajr == nil || tempFajr?.compare(safeFajr) == .orderedAscending {
+                tempFajr = safeFajr
+            }
+
+            // Isha calculation with check against safe value
+            if calculationParameters.ishaInterval > 0 {
+                tempIsha = tempMaghrib?.addingTimeInterval(calculationParameters.ishaInterval.timeInterval)
+            } else {
+                if let ishaComponents = solarTime.timeForSolarAngle(
+                    Angle(-calculationParameters.ishaAngle), afterTransit: true)
+                {
+                    tempIsha = cal.date(from: ishaComponents)
+                }
+
+                // special case for moonsighting committee at or above latitude 55
+                if calculationParameters.method == .moonsightingCommittee && coordinates.latitude >= 55 {
+                    let nightFraction = night / 7
+                    tempIsha = sunsetDate.addingTimeInterval(nightFraction)
+                }
+
+                let safeIsha: Date = {
+                    guard calculationParameters.method != .moonsightingCommittee else {
+                        return Astronomical.seasonAdjustedEveningTwilight(
+                            latitude: coordinates.latitude, day: dayOfYear, year: year, sunset: sunsetDate,
+                            shafaq: calculationParameters.shafaq)
+                    }
+
+                    let portion = calculationParameters.nightPortions(using: coordinates).isha
+                    let nightFraction = portion * night
+
+                    return sunsetDate.addingTimeInterval(nightFraction)
+                }()
+
+                if tempIsha == nil || tempIsha?.compare(safeIsha) == .orderedDescending {
+                    tempIsha = safeIsha
+                }
             }
         }
-        
+
         // Maghrib calculation with check against safe value
         if let maghribAngle = calculationParameters.maghribAngle,
             let maghribComponents = solarTime.timeForSolarAngle(Angle(-maghribAngle), afterTransit: true),
             let maghribDate = cal.date(from: maghribComponents),
             // maghrib is considered safe if it falls between sunset and isha
-            sunsetDate < maghribDate, (tempIsha?.compare(maghribDate) == .orderedDescending || tempIsha == nil) {
-                tempMaghrib = maghribDate
+            sunsetDate < maghribDate, tempIsha?.compare(maghribDate) == .orderedDescending || tempIsha == nil
+        {
+            tempMaghrib = maghribDate
         }
 
         // if we don't have all prayer times then initialization failed
@@ -173,8 +210,9 @@ public struct PrayerTimes {
             let dhuhr = tempDhuhr,
             let asr = tempAsr,
             let maghrib = tempMaghrib,
-            let isha = tempIsha else {
-                return nil
+            let isha = tempIsha
+        else {
+            return nil
         }
 
         // Assign final times to public struct members with all offsets
@@ -250,52 +288,61 @@ public struct PrayerTimes {
             return isha
         }
     }
-    
-    private static func initializeFromLondonLookup(date: DateComponents, calculationParameters: CalculationParameters) -> (fajr: Date, sunrise: Date, dhuhr: Date, asr: Date, maghrib: Date, isha: Date)? {
+
+    private static func initializeFromLondonLookup(date: DateComponents, calculationParameters: CalculationParameters)
+        -> (fajr: Date, sunrise: Date, dhuhr: Date, asr: Date, maghrib: Date, isha: Date)?
+    {
         guard let londonTimes = LondonTimesLookup.getTimes(for: date) else {
             return nil
         }
-        
+
         guard let tempFajr = londonTimes.parseTime(londonTimes.fajr, for: date),
-              let tempSunrise = londonTimes.parseTime(londonTimes.sunrise, for: date),
-              let tempDhuhr = londonTimes.parseTime(londonTimes.dhuhr, for: date),
-              let tempAsr = londonTimes.parseTime(londonTimes.asr, for: date),
-              let tempMaghrib = londonTimes.parseTime(londonTimes.maghrib, for: date),
-              let tempIsha = londonTimes.parseTime(londonTimes.isha, for: date) else {
+            let tempSunrise = londonTimes.parseTime(londonTimes.sunrise, for: date),
+            let tempDhuhr = londonTimes.parseTime(londonTimes.dhuhr, for: date),
+            let tempAsr = londonTimes.parseTime(londonTimes.asr, for: date),
+            let tempMaghrib = londonTimes.parseTime(londonTimes.maghrib, for: date),
+            let tempIsha = londonTimes.parseTime(londonTimes.isha, for: date)
+        else {
             return nil
         }
-        
+
         // Apply adjustments and rounding (same as astronomical calculations)
-        let fajr = tempFajr
+        let fajr =
+            tempFajr
             .addingTimeInterval(calculationParameters.adjustments.fajr.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
-        let sunrise = tempSunrise
+
+        let sunrise =
+            tempSunrise
             .addingTimeInterval(calculationParameters.adjustments.sunrise.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
-        let dhuhr = tempDhuhr
+
+        let dhuhr =
+            tempDhuhr
             .addingTimeInterval(calculationParameters.adjustments.dhuhr.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
-        let asr = tempAsr
+
+        let asr =
+            tempAsr
             .addingTimeInterval(calculationParameters.adjustments.asr.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
-        let maghrib = tempMaghrib
+
+        let maghrib =
+            tempMaghrib
             .addingTimeInterval(calculationParameters.adjustments.maghrib.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
-        let isha = tempIsha
+
+        let isha =
+            tempIsha
             .addingTimeInterval(calculationParameters.adjustments.isha.timeInterval)
             .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
-        
+
         return (fajr: fajr, sunrise: sunrise, dhuhr: dhuhr, asr: asr, maghrib: maghrib, isha: isha)
     }
 }

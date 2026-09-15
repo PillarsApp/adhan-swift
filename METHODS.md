@@ -25,6 +25,7 @@ params.adjustments.fajr = 2
 | adjustments | PrayerAdjustments struct with custom prayer time adjustments in minutes for each prayer time. |
 | rounding | The behavior for rounding prayer times. Either to nearest minute, to the higher minute, or none.  |
 | shafaq | Used by the MoonsightingCommittee method to determine how to calculate Isha. See explanation of values below. |
+| wifaqulOptions | Optional WifaqulOptions for wifaqulUlama only; nil uses the defaults below. Legacy encoded parameters without this field still decode. |
 
 ## CalculationMethod
 
@@ -45,6 +46,73 @@ Preset calculation parameters for different regions.
 | tehran | Institute of Geophysics, University of Tehran. Early Isha time with an angle of 14°. Slightly later Fajr time with an angle of 17.7°. Calculates Maghrib based on the sun reaching an angle of 4.5° below the horizon. |
 | northAmerica | Also known as the ISNA method. Can be used for North America, but the moonsightingCommittee method is preferable. Gives later Fajr times and early Isha times with angles of 15°. |
 | other | Defaults to angles of 0°, should generally be used for making a custom method and setting your own values. |
+| wifaqulUlama | Pillars-selected Wifaqul profile: Fajr 18°, last-valid-day Aqrab, northern Isha hardship cap, Dhuhr +4 minutes and Maghrib +5 minutes. |
+
+## Wifaqul Ulama — selected profile, version 1
+
+This is a Pillars fork extension, not a claim of exact agreement with the Wifaqul store app.
+The [18-degree explanation](https://www.wifaqululama.co.uk/18degrees/),
+[FAQ](https://www.wifaqululama.co.uk/salahtimes/), and
+[high-latitude guidance](https://www.wifaqululama.co.uk/highlat/) describe multiple variants.
+This profile chooses last-valid-day Aqrabul Ayyam, rather than the FAQ's historical averaging;
+Wifaqul's [Android 10.4.0 release](https://github.com/wifaqululama/android_public_release_mirror/releases/tag/10.4.0)
+also describes changing Aqrab to the last actual Fajr.
+
+```swift
+var params = CalculationMethod.wifaqulUlama.params
+params.madhab = .hanafi // Omit to keep the Shafi default.
+let prayers = PrayerTimes(
+    coordinates: Coordinates(latitude: 51.5074, longitude: -0.1278),
+    date: DateComponents(year: 2026, month: 6, day: 21),
+    calculationParameters: params
+)
+```
+
+The fixed policy is:
+
+- Fajr uses the actual 18° dawn whenever it exists. When absent in the northern hemisphere,
+  reuse the last valid raw dawn's offset from UTC midnight throughout that missing-twilight
+  interval. Reference searches are bounded to 370 days in each direction; there is no averaging.
+- Isha uses 15° at latitude **48° north or higher**, including exactly 48°, and 18° below it.
+  The inclusive boundary is an explicit choice because the FAQ overlaps at equality.
+- At 48° north or higher, default Isha is the earlier of actual 15° twilight and the annual
+  longest-day sunset plus 65 minutes; when twilight is absent, use that annual cap.
+  The reference is the greatest raw sunrise-to-sunset duration among June 15–25 of the requested
+  year, with the earliest day winning a tie. Its sunset offset is rebased onto the requested
+  UTC date. This is **not today's sunset plus 65 minutes**, nor a fixed civil-clock cap.
+- Dhuhr adds four minutes to transit, Maghrib adds five minutes to raw sunset, and sunrise has
+  no method adjustment. Both Asr madhabs are supported. User and method adjustments are applied
+  once after policy selection, followed by the existing rounding setting.
+- Generic `highLatitudeRule` is ignored for this method. Its angles must remain 18°/18° in
+  the parameter object, with zero Isha interval and no Maghrib angle; the effective northern
+  Isha angle is selected internally without mutating reusable parameters.
+
+Optional alternatives are explicit:
+
+```swift
+params.wifaqulOptions = WifaqulOptions(
+    fajrRule: .nisfAlLayl,
+    ishaRule: .seventhOfNight
+)
+```
+
+Nisf replaces only missing Fajr with the midpoint from **previous raw sunset to today's
+sunrise**. Seventh-of-night caps existing northern Isha at one seventh of the interval from
+**today's raw sunset to tomorrow's sunrise**; absent Isha still uses the annual longest-day
+cap. Defaults are `.aqrabulAyyam` and `.longestDay`. Options are immutable, `Codable`,
+`Equatable`, and `Sendable`; absent options in older encoded parameters select these defaults.
+
+Missing required horizon/reference events, missing southern twilight, or incompatible custom
+angles make `PrayerTimes` return `nil`; no substitute latitude is used. This is not a
+southern-hemisphere summer policy. Reference caches use exact coordinates and year, hold
+at most 32 entries, and are synchronized for concurrent callers. Other calculation methods
+and their encoded names are unchanged.
+
+Tests include 47 independent Astronomy Engine 2.1.19 reference cases with a two-minute
+cross-model tolerance, complete seasonal transitions, travel timezones, date-line rollover,
+both madhabs, options, adjustments, serialization, and concurrent/cache-eviction behavior.
+Expected instants are not generated by either Adhan implementation. Their provenance is in
+`Tests/Resources/wifaqul-astronomy-engine.json`; `tools/generate_wifaqul_fixtures.cjs` reproduces them.
 
 ## Madhab
 
