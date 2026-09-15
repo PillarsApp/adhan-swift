@@ -99,7 +99,17 @@ public struct LondonPrayerTimes {
  Static lookup service for London prayer times from JSON data.
  */
 public class LondonTimesLookup {
-    private static var cachedData: [String: Any]? = {
+    // NSLock keeps the synchronous lookup API usable below the deployment targets of Mutex.
+    private final class Cache: @unchecked Sendable {
+        let lock = NSLock()
+        var data: [String: Any]?
+
+        init(data: [String: Any]?) {
+            self.data = data
+        }
+    }
+
+    private static let cache = Cache(data: {
         // Load embedded JSON data automatically
         guard let url = Bundle.module.url(forResource: "LondonPrayerTimes", withExtension: "json"),
               let data = try? Data(contentsOf: url),
@@ -108,7 +118,20 @@ public class LondonTimesLookup {
             return nil
         }
         return jsonDict
-    }()
+    }())
+
+    private static var cachedData: [String: Any]? {
+        get {
+            cache.lock.lock()
+            defer { cache.lock.unlock() }
+            return cache.data
+        }
+        set {
+            cache.lock.lock()
+            defer { cache.lock.unlock() }
+            cache.data = newValue
+        }
+    }
     
     /**
      Initialize the lookup service with JSON string data.
@@ -168,14 +191,15 @@ public class LondonTimesLookup {
      Clear cached data and reload from embedded resource.
      */
     public static func clearCache() {
-        cachedData = nil
-        // Reload from embedded resource
-        if let url = Bundle.module.url(forResource: "LondonPrayerTimes", withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let json = try? JSONSerialization.jsonObject(with: data, options: []),
-           let jsonDict = json as? [String: Any] {
-            cachedData = jsonDict
-        }
+        let reloadedData: [String: Any]? = {
+            guard let url = Bundle.module.url(forResource: "LondonPrayerTimes", withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
+                return nil
+            }
+            return json as? [String: Any]
+        }()
+        cachedData = reloadedData
     }
 }
 

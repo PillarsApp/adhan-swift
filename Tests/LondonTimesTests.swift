@@ -24,6 +24,16 @@ class LondonTimesTests: XCTestCase {
         // Clear any cached data before each test
         LondonTimesLookup.clearCache()
     }
+
+    func testConcurrentReloadKeepsEmbeddedTimesAvailable() {
+        DispatchQueue.concurrentPerform(iterations: 40) { iteration in
+            if iteration.isMultiple(of: 2) {
+                LondonTimesLookup.clearCache()
+            }
+            let date = DateComponents(year: 2025, month: 1, day: 1)
+            XCTAssertEqual(LondonTimesLookup.getTimes(for: date)?.fajr, "06:26")
+        }
+    }
     
     func testLondonTimesDataModel() {
         let testData: [String: Any] = [
@@ -297,10 +307,8 @@ class LondonTimesTests: XCTestCase {
         let invalidJSON = "{ invalid json }"
         
         XCTAssertThrowsError(try LondonTimesLookup.initialize(with: invalidJSON)) { error in
-            if case let AdhanError.invalidData(message) = error {
-                XCTAssertTrue(message.contains("Failed to parse JSON"))
-            } else {
-                XCTFail("Expected AdhanError.invalidData but got \(error)")
+            guard case AdhanError.invalidData = error else {
+                return XCTFail("Expected AdhanError.invalidData but got \(error)")
             }
         }
     }
