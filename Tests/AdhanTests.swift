@@ -391,8 +391,28 @@ class AdhanTests: XCTestCase {
         comps2.year = -1
         comps2.month = 99
         comps2.day = 99
-        let p2 = PrayerTimes(coordinates: Coordinates(latitude: 33.720817, longitude: 73.090032), date: comps1, calculationParameters: CalculationMethod.muslimWorldLeague.params)
+        let p2 = PrayerTimes(coordinates: Coordinates(latitude: 33.720817, longitude: 73.090032), date: comps2, calculationParameters: CalculationMethod.muslimWorldLeague.params)
         XCTAssertNil(p2)
+    }
+
+    func testIncompleteOrOutOfRangeDate() {
+        let coordinates = Coordinates(latitude: 33.720817, longitude: 73.090032)
+        let params = CalculationMethod.muslimWorldLeague.params
+        let invalidDates = [
+            DateComponents(month: 6, day: 21),
+            DateComponents(year: 2020, day: 21),
+            DateComponents(year: 2020, month: 6),
+            DateComponents(year: 2020, month: 2, day: 30),
+            DateComponents(year: 2021, month: 2, day: 29),
+            DateComponents(year: 2020, month: 1, day: 32),
+            DateComponents(year: 2020, month: 13, day: 1),
+        ]
+
+        for date in invalidDates {
+            XCTAssertNil(PrayerTimes(coordinates: coordinates, date: date, calculationParameters: params), "\(date)")
+        }
+
+        XCTAssertNotNil(PrayerTimes(coordinates: coordinates, date: DateComponents(year: 2020, month: 2, day: 29), calculationParameters: params))
     }
 
     func testInvalidLocation() {
@@ -405,12 +425,19 @@ class AdhanTests: XCTestCase {
     }
 
     func testExtremeLocation() {
+        var unresolvedParams = CalculationMethod.muslimWorldLeague.params
+        unresolvedParams.polarCircleResolution = .unresolved
+
         var comps1 = DateComponents()
         comps1.year = 2018
         comps1.month = 1
         comps1.day = 1
-        let p1 = PrayerTimes(coordinates: Coordinates(latitude: 71.275009, longitude: -156.761368), date: comps1, calculationParameters: CalculationMethod.muslimWorldLeague.params)
+        let p1 = PrayerTimes(coordinates: Coordinates(latitude: 71.275009, longitude: -156.761368), date: comps1, calculationParameters: unresolvedParams)
         XCTAssertNil(p1)
+
+        // the default polar circle resolution resolves the same date
+        let p1Resolved = PrayerTimes(coordinates: Coordinates(latitude: 71.275009, longitude: -156.761368), date: comps1, calculationParameters: CalculationMethod.muslimWorldLeague.params)
+        XCTAssertNotNil(p1Resolved)
 
         var comps2 = DateComponents()
         comps2.year = 2018
@@ -482,7 +509,53 @@ class AdhanTests: XCTestCase {
         let coords2 = Coordinates(latitude: 48.983226, longitude: -3.216649)
         XCTAssertEqual(HighLatitudeRule.recommended(for: coords2), .seventhOfTheNight)
     }
-    
+
+    // Regression test: `HighLatitudeRule.recommended(for:)` must compare against the latitude's
+    // absolute value so southern-hemisphere locations beyond 48° are treated the same as northern
+    // ones. A prior version compared `coordinates.latitude > 48` directly, which silently never
+    // triggered `.seventhOfTheNight` for any negative (southern) latitude.
+    func testRecommendedHighLatitudeRuleSouthernHemisphere() {
+        // Real-world southern high-latitude locations that should recommend seventhOfTheNight.
+        let ushuaiaArgentina = Coordinates(latitude: -54.8019, longitude: -68.3030)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: ushuaiaArgentina), .seventhOfTheNight)
+
+        let puntaArenasChile = Coordinates(latitude: -53.1638, longitude: -70.9171)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: puntaArenasChile), .seventhOfTheNight)
+
+        let dunedinNewZealand = Coordinates(latitude: -45.8788, longitude: 170.5028)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: dunedinNewZealand), .middleOfTheNight)
+
+        // Mirror-image check: identical distance from the equator, opposite sign, must agree.
+        let coordsNorth = Coordinates(latitude: 45.983226, longitude: -3.216649)
+        let coordsSouth = Coordinates(latitude: -45.983226, longitude: -3.216649)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: coordsNorth), HighLatitudeRule.recommended(for: coordsSouth))
+        XCTAssertEqual(HighLatitudeRule.recommended(for: coordsSouth), .middleOfTheNight)
+
+        let coordsNorthHigh = Coordinates(latitude: 48.983226, longitude: -3.216649)
+        let coordsSouthHigh = Coordinates(latitude: -48.983226, longitude: -3.216649)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: coordsNorthHigh), HighLatitudeRule.recommended(for: coordsSouthHigh))
+        XCTAssertEqual(HighLatitudeRule.recommended(for: coordsSouthHigh), .seventhOfTheNight)
+
+        // Boundary: exactly ±48° is not "beyond" 48°, so both should stay middleOfTheNight.
+        let boundaryNorth = Coordinates(latitude: 48, longitude: 0)
+        let boundarySouth = Coordinates(latitude: -48, longitude: 0)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: boundaryNorth), .middleOfTheNight)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: boundarySouth), .middleOfTheNight)
+
+        // Just past the boundary on both sides should flip to seventhOfTheNight.
+        let justPastNorth = Coordinates(latitude: 48.0001, longitude: 0)
+        let justPastSouth = Coordinates(latitude: -48.0001, longitude: 0)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: justPastNorth), .seventhOfTheNight)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: justPastSouth), .seventhOfTheNight)
+
+        // The equator and southern-hemisphere low latitudes should stay middleOfTheNight.
+        let equator = Coordinates(latitude: 0, longitude: 0)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: equator), .middleOfTheNight)
+
+        let jakartaIndonesia = Coordinates(latitude: -6.2088, longitude: 106.8456)
+        XCTAssertEqual(HighLatitudeRule.recommended(for: jakartaIndonesia), .middleOfTheNight)
+    }
+
     func testShafaqGeneral() {
         let coords = Coordinates(latitude: 43.494, longitude: -79.844)
         var params = CalculationMethod.moonsightingCommittee.params
@@ -679,6 +752,36 @@ class AdhanTests: XCTestCase {
         comps.month = 12
         comps.day = 1
         checkPrayersOrder(date: comps, coordinates: Coordinates(latitude: 47.082209457885355, longitude: 177.24642294208638))
+    }
+
+    func testPrayerTimesOrderedSunBarelyClearsAsrThresholdAt67N() {
+        var comps = DateComponents()
+        comps.year = 2026
+        comps.month = 1
+        comps.day = 8
+        let coordinates = Coordinates(latitude: 67.37800510772394, longitude: -67.26246475893095)
+        let params = CalculationMethod.muslimWorldLeague.params
+        guard let p = PrayerTimes(coordinates: coordinates, date: comps, calculationParameters: params) else {
+            XCTFail("Expected prayer times to be computable")
+            return
+        }
+        XCTAssertLessThan(p.fajr, p.sunrise)
+        XCTAssertLessThan(p.sunrise, p.dhuhr)
+        XCTAssertLessThan(p.dhuhr, p.asr)
+        XCTAssertLessThan(p.asr, p.maghrib)
+        XCTAssertLessThan(p.maghrib, p.isha)
+    }
+
+    func testPrayerTimesNilWhenSunCannotReachRequiredAltitudeAt67N() {
+        var comps = DateComponents()
+        comps.year = 2026
+        comps.month = 1
+        comps.day = 5
+        let coordinates = Coordinates(latitude: 67.37800510772394, longitude: -67.26246475893095)
+        var params = CalculationMethod.muslimWorldLeague.params
+        params.polarCircleResolution = .unresolved
+        let p = PrayerTimes(coordinates: coordinates, date: comps, calculationParameters: params)
+        XCTAssertNil(p)
     }
 
     private func checkPrayersOrder(date: DateComponents, coordinates: Coordinates) {
