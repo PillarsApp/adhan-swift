@@ -135,6 +135,13 @@ if let sunnahTimes = SunnahTimes(from: todayPrayers) {
 }
 ```
 
+`SunnahTimes` internally computes a second `PrayerTimes` for the following
+day (using the same coordinates and calculation parameters) to determine the
+length of the night. That computation can fail independently of the
+`PrayerTimes` you passed in - near the polar circle, today's times may be
+computable while tomorrow's aren't - so `SunnahTimes` initialization can
+return nil even when the `PrayerTimes` you passed in is valid.
+
 ## Unified London Times
 
 For London, you can use pre-calculated authoritative prayer times instead of astronomical calculations by using the `unifiedLondonTimes` calculation method. This feature uses the London Unified Prayer Timetable data that is embedded in the library (as of version 1.3.1).
@@ -211,12 +218,6 @@ The JSON data should follow this structure:
 ```
 
 **Note**: The lookup method will return `nil` if prayer times for the requested date are not available in the JSON data.
-`SunnahTimes` internally computes a second `PrayerTimes` for the following
-day (using the same coordinates and calculation parameters) to determine the
-length of the night. That computation can fail independently of the
-`PrayerTimes` you passed in - near the polar circle, today's times may be
-computable while tomorrow's aren't - so `SunnahTimes` initialization can
-return nil even when the `PrayerTimes` you passed in is valid.
 
 ## Qibla Direction
 
