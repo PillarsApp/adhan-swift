@@ -49,6 +49,7 @@ jobs:
           xcodebuild test \
             -scheme Adhan \
             -destination "${{ matrix.destination }}" \
+            -destination-timeout 300 \
             CODE_SIGNING_ALLOWED=NO | xcbeautify
 
   build_example_app:
@@ -64,4 +65,5 @@ jobs:
             -project Example/AdhanExample.xcodeproj \
             -scheme AdhanExample \
             -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+            -destination-timeout 300 \
             CODE_SIGNING_ALLOWED=NO | xcbeautify
