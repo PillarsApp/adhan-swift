@@ -29,12 +29,13 @@ let methodKeys = ["mwl_mid", "mwl_seventh", "mwl_twilight", "msc_mid", "isna_mid
 
 struct Options {
     var polarCircleResolution: PolarCircleResolution?
+    var hourAngleCorrection: HourAngleCorrection?
     var bench = false
 }
 
 func usage() -> Never {
     let text = """
-    usage: Probe [--polar aqrabBalad|aqrabYaum|unresolved] [--bench]
+    usage: Probe [--polar aqrabBalad|aqrabYaum|unresolved] [--correction iterative|singlePass] [--bench]
 
     Without --bench, prints the 10 city, 365 day, 6 method grid for 2026 as CSV:
     city,date,method,fajr,sunrise,dhuhr,asr,maghrib,isha (UTC epoch seconds, or nil).
@@ -56,6 +57,11 @@ func parse(_ arguments: [String]) -> Options {
                 usage()
             }
             options.polarCircleResolution = value
+        case "--correction":
+            guard let raw = rest.popFirst(), let value = HourAngleCorrection(rawValue: raw) else {
+                usage()
+            }
+            options.hourAngleCorrection = value
         case "--bench":
             options.bench = true
         default:
@@ -91,6 +97,9 @@ func params(_ key: String, _ options: Options) -> CalculationParameters {
     }
     if let resolution = options.polarCircleResolution {
         p.polarCircleResolution = resolution
+    }
+    if let correction = options.hourAngleCorrection {
+        p.hourAngleCorrection = correction
     }
     return p
 }

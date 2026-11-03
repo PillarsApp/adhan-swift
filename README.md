@@ -86,6 +86,20 @@ you've set `polarCircleResolution` to `unresolved` yourself), in which case
 See [`polarCircleResolution`](METHODS.md#polarcircleresolution) for the other
 available resolution strategies.
 
+#### Keeping the times of version 1.4.0
+
+Versions after 1.4.0 correct the time at which the sun reaches each prayer's
+angle iteratively, and validate that the times come out in order. This moves Isha
+on summer days above about 48.5° latitude, by up to 4 minutes at London's latitude
+and by up to about 40 minutes at Reykjavik's, and, with
+`polarCircleResolution` set to `unresolved`, returns nil on some polar days that
+previously produced times. To keep the times version 1.4.0 computed, set the
+`hourAngleCorrection` calculation parameter to `singlePass` and
+`polarCircleResolution` to `unresolved`. Fixes outside the correction, such as
+the one for longitudes near ±180°, apply under both values.
+
+See [`hourAngleCorrection`](METHODS.md#houranglecorrection).
+
 ## Full Example
 
 ```swift

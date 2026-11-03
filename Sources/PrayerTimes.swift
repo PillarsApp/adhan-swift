@@ -139,8 +139,8 @@ public struct PrayerTimes {
     }
 
     /// Computes prayer times for a single day of solar geometry with no awareness of
-    /// polar circle resolution. Returns nil if any time can't be computed or the times
-    /// end up out of order.
+    /// polar circle resolution. Returns nil if any time can't be computed or, under
+    /// `.iterative`, the times end up out of order.
     static func computeForDay(
         coordinates: Coordinates,
         date: DateComponents,
@@ -164,8 +164,10 @@ public struct PrayerTimes {
 
         let tomorrow = cal.dateComponents([.year, .month, .day], from: tomorrowDate)
 
-        guard let solarTime = SolarTime(date: date, coordinates: coordinates),
-            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates),
+        let hourAngleCorrection = calculationParameters.hourAngleCorrection
+
+        guard let solarTime = SolarTime(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection),
+            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection),
             let sunriseDate = cal.date(from: solarTime.sunrise),
             let sunsetDate = cal.date(from: solarTime.sunset),
             let tomorrowSunrise = cal.date(from: tomorrowSolarTime.sunrise) else {
@@ -205,7 +207,8 @@ public struct PrayerTimes {
             return sunriseDate.addingTimeInterval(-nightFraction)
         }()
 
-        if tempFajr == nil || tempFajr?.compare(safeFajr) == .orderedAscending || !PrayerTimes.timesInOrder(tempFajr, tempSunrise) {
+        if tempFajr == nil || tempFajr?.compare(safeFajr) == .orderedAscending
+            || (hourAngleCorrection.validatesTimes && !PrayerTimes.timesInOrder(tempFajr, tempSunrise)) {
             tempFajr = safeFajr
         }
 
@@ -234,7 +237,8 @@ public struct PrayerTimes {
                 return sunsetDate.addingTimeInterval(nightFraction)
             }()
 
-            if tempIsha == nil || !PrayerTimes.timesInOrder(tempMaghrib, tempIsha) || tempIsha?.compare(safeIsha) == .orderedDescending {
+            if tempIsha == nil || (hourAngleCorrection.validatesTimes && !PrayerTimes.timesInOrder(tempMaghrib, tempIsha))
+                || tempIsha?.compare(safeIsha) == .orderedDescending {
                 tempIsha = safeIsha
             }
         }
@@ -252,12 +256,14 @@ public struct PrayerTimes {
         // at least a 5 minute time difference. This prevents invalid prayer times
         // for locations inside the polar circle on dates where the sun rises
         // but never leaves the horizon.
-        guard PrayerTimes.timesInOrder(tempFajr, tempSunrise),
-            PrayerTimes.timesInOrder(tempSunrise, tempDhuhr),
-            PrayerTimes.timesInOrder(tempDhuhr, tempAsr),
-            PrayerTimes.timesInOrder(tempAsr, tempMaghrib),
-            PrayerTimes.timesInOrder(tempMaghrib, tempIsha) else {
-                return nil
+        if hourAngleCorrection.validatesTimes {
+            guard PrayerTimes.timesInOrder(tempFajr, tempSunrise),
+                PrayerTimes.timesInOrder(tempSunrise, tempDhuhr),
+                PrayerTimes.timesInOrder(tempDhuhr, tempAsr),
+                PrayerTimes.timesInOrder(tempAsr, tempMaghrib),
+                PrayerTimes.timesInOrder(tempMaghrib, tempIsha) else {
+                    return nil
+            }
         }
 
         // if we don't have all prayer times then initialization failed
