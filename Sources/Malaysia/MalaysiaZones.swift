@@ -45,13 +45,14 @@ public enum MalaysiaZones {
     }()
 
     /// The zone in force at `coordinates` on `date`, or nil outside every zone,
-    /// for a non-finite coordinate, and for a date without a year, month and
-    /// day. A manual-only zone such as SWK09 is never returned here.
+    /// for a latitude not within -90...90 or a longitude not within -180...180,
+    /// NaN included, and for a date without a year, month and day. A
+    /// manual-only zone such as SWK09 is never returned here.
     /// Points up to 3.0 km outside Malaysia's land borders can resolve to a
     /// zone, so a caller that must not serve a neighbouring country should also
     /// check the country.
     public static func resolve(_ coordinates: Coordinates, on date: DateComponents) -> MalaysiaZone? {
-        guard coordinates.latitude.isFinite, coordinates.longitude.isFinite, let day = MalaysiaZone.dayNumber(date),
+        guard abs(coordinates.latitude) <= 90, abs(coordinates.longitude) <= 180, let day = MalaysiaZone.dayNumber(date),
             let code = map.zoneAt(latitude: coordinates.latitude, longitude: coordinates.longitude, day: day) else {
             return nil
         }

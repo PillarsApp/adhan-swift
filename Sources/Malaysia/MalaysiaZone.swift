@@ -91,10 +91,14 @@ public struct MalaysiaZone: Hashable, Sendable, CustomStringConvertible {
     }
 
     static func dayNumber(_ date: DateComponents) -> Int64? {
-        guard let year = date.year, let month = date.month, let day = date.day else {
+        guard let year = overflowSafe(date.year), let month = overflowSafe(date.month), let day = overflowSafe(date.day) else {
             return nil
         }
-        return Int64(year) * 10000 + Int64(month) * 100 + Int64(day)
+        return year * 10000 + month * 100 + day
+    }
+
+    private static func overflowSafe(_ component: Int?) -> Int64? {
+        return component.flatMap(Int32.init(exactly:)).map(Int64.init)
     }
 
     private static func date(_ yyyymmdd: Int64) -> DateComponents {
