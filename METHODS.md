@@ -26,6 +26,7 @@ params.adjustments.fajr = 2
 | rounding | The behavior for rounding prayer times. Either to nearest minute, to the higher minute, or none.  |
 | shafaq | Used by the MoonsightingCommittee method to determine how to calculate Isha. See explanation of values below. |
 | polarCircleResolution | Which setting from the PolarCircleResolution enum to use for resolving prayer times inside the polar circles. Default value is `aqrabBalad`. |
+| hourAngleCorrection | Which setting from the HourAngleCorrection enum to use when correcting the time the sun reaches each prayer's angle. Default value is `iterative`. |
 
 ## CalculationMethod
 
@@ -82,6 +83,15 @@ Strategy used to resolve prayer times for locations inside the polar circles, wh
 | aqrabBalad | (default) Finds the closest location (moving toward the equator at the same longitude) for which prayer times can be computed. |
 | aqrabYaum | Finds the closest date (forward or backward) for which prayer times can be computed. |
 | unresolved | Leaves prayer times unresolved, `PrayerTimes` initialization returns nil when they can't be computed. See [README](README.md#polar-circle-locations). |
+
+## HourAngleCorrection
+
+How the time at which the sun reaches a given altitude (sunrise, sunset, Fajr, Isha and Asr) is corrected, and how strictly the resulting times are validated.
+
+| Value | Description |
+| ----- | ----------- |
+| iterative | (default) Repeats the hour angle correction until it converges or ten passes have run, rejects an Asr angle the sun does not reach that day, treats a day whose times come out of order, or less than five minutes apart, as one whose times can't be computed, and at longitudes near ±180° picks the solar transit nearest the longitude's mean noon, so consecutive days never jump by a day. |
+| singlePass | Applies the hour angle correction once and keeps every time it produces, as version 1.4.0 did. Measured for 2026 with `highLatitudeRule` set to `middleOfTheNight`, the two values differ by 4 minutes for Isha at London (16 July), 41 minutes for ISNA Isha at Reykjavik (25 August) and 43 minutes for Isha at Edmonton with 18° angles (13 May). With `highLatitudeRule` nil, which means `seventhOfTheNight` above 48°, those three places do not differ on any day of 2026. At Tromso the two values differ by 50 minutes for Asr (21 January) and 116 minutes for Moonsighting Committee Fajr (17 May), with or without the rule. With `polarCircleResolution` set to `unresolved`, polar days behave as they did in 1.4.0 too. `singlePass` also keeps 1.4.0's choice of day near ±180°, where on some days, at Suva or the Chatham Islands for example, its times fall a day apart from those `iterative` returns. Two changes since 1.4.0 apply under both values: with `highLatitudeRule` nil, latitudes south of 48°S get the same rule as those north of 48°N, and `SunnahTimes` honours `rounding`. |
 
 #### Shafaq
 

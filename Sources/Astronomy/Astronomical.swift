@@ -142,10 +142,14 @@ struct Astronomical {
         return Angle(radians: asin(term1 + term2))
     }
 
-    static func approximateTransit(longitude L: Angle, siderealTime Θ0: Angle, rightAscension α2: Angle) -> Double {
+    static func approximateTransit(longitude L: Angle, siderealTime Θ0: Angle, rightAscension α2: Angle,
+                                   correction: HourAngleCorrection = .iterative) -> Double {
         /* Equation from page Astronomical Algorithms 102 */
         let Lw = L * -1
         let m0 = ((α2 + Lw - Θ0) / 360).degrees.normalizedToScale(1)
+        guard correction.anchorsTransitToLongitude else {
+            return m0
+        }
         // For locations near the International Date Line, normalizeWithBound can produce
         // an m0 for the wrong calendar date.  We detect this by comparing m0 to a
         // generalized transit time based on the longitude. If they differ by more than
@@ -174,7 +178,8 @@ struct Astronomical {
 
     static func correctedHourAngle(approximateTransit m0: Double, angle h0: Angle, coordinates: Coordinates, afterTransit: Bool, siderealTime Θ0: Angle,
                                    rightAscension α2: Angle, previousRightAscension α1: Angle, nextRightAscension α3: Angle,
-                                   declination δ2: Angle, previousDeclination δ1: Angle, nextDeclination δ3: Angle) -> Double {
+                                   declination δ2: Angle, previousDeclination δ1: Angle, nextDeclination δ3: Angle,
+                                   correction: HourAngleCorrection = .iterative) -> Double {
         /* Equation from page Astronomical Algorithms 102 */
         let Lw = coordinates.longitudeAngle * Angle(-1)
         let term1 = sin(h0.radians) - (sin(coordinates.latitudeAngle.radians) * sin(δ2.radians))
@@ -184,8 +189,7 @@ struct Astronomical {
 
         // Astronomical Algorithms page 103 notes that the correction value of Δm
         // should be ±0.01 and to recalculate with the corrected m value if needed.
-        // Iteration is capped at 10 to account for situations where convergence doesn't occur.
-        for _ in 0..<10 {
+        for _ in 0..<correction.maximumIterations {
             let θ = Angle(Θ0.degrees + (360.985647 * m)).unwound()
             let α = Astronomical.interpolateAngles(value: α2, previousValue: α1, nextValue: α3, factor: m).unwound()
             let δ = Angle(Astronomical.interpolate(value: δ2.degrees, previousValue: δ1.degrees, nextValue: δ3.degrees, factor: m))
