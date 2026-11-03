@@ -53,7 +53,10 @@ import Foundation
   any day of 2026. At Tromso Asr differs by 50 minutes on 21 January and
   Moonsighting Committee Fajr by 116 minutes on 17 May, with or without the
   rule. Combined with `polarCircleResolution` set to
-  `unresolved`, polar days behave as they did in 1.4.0 too.
+  `unresolved`, polar days behave as they did in 1.4.0 too. With the default
+  `aqrabBalad`, a polar day can return times out of order, because
+  `singlePass` skips the ordering check and `aqrabBalad` substitutes a
+  latitude.
 
   `singlePass` also keeps 1.4.0's choice of day at longitudes near ±180°.
   On some days there, at Suva or the Chatham Islands for example, its times

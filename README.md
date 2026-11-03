@@ -110,6 +110,10 @@ Two changes since 1.4.0 apply under both values: with `highLatitudeRule` nil,
 latitudes south of 48°S now get the same rule as those north of 48°N, and
 `SunnahTimes` now honours `rounding`.
 
+With `singlePass` and the default `polarCircleResolution` of `aqrabBalad`, a
+polar day can return times out of order, because `singlePass` skips the
+ordering check and `aqrabBalad` substitutes a latitude.
+
 See [`hourAngleCorrection`](METHODS.md#houranglecorrection).
 
 ## Full Example
@@ -244,6 +248,32 @@ The JSON data should follow this structure:
 ```
 
 **Note**: The lookup method will return `nil` if prayer times for the requested date are not available in the JSON data.
+
+## Official Malaysian Timetable
+
+The library embeds the prayer timetables that JAKIM publishes through e-Solat, the Selangor district timetables from 2027, and a map of the prayer zones. `CalculationMethod.malaysiaOfficial` reads the published row for the zone and date:
+
+```swift
+let params = CalculationMethod.malaysiaOfficial.params
+let times = PrayerTimes(coordinates: Coordinates(latitude: 3.1390, longitude: 101.6869),
+                        date: DateComponents(year: 2026, month: 11, day: 2),
+                        calculationParameters: params)!
+
+times.fajr                 // 05:48 at UTC+8, the published Subuh for zone WLY01
+times.source               // PrayerTimesSource.official
+times.malaysiaZone!.code   // WLY01, resolved from the coordinates
+times.malaysiaDay!.imsak   // 05:38; the row also carries Dhuha
+```
+
+The zone comes from the coordinates unless `params.malaysiaZone` names one, such as `"WLY02"`. Times are instants built at UTC+8, so the host time zone never changes a result; format them with a `DateFormatter` set to `Asia/Kuala_Lumpur`. User `adjustments` apply on top of the published row. With `Madhab.hanafi`, Asr is the published Asr plus the calculated difference between the Hanafi and Shafi Asr at the zone's reference point.
+
+When no zone covers the coordinates, or the data has no row for the zone and date, `PrayerTimes` calculates instead and `source` says why: `calculatedNoZone` or `calculatedNoRow`. The zone catalog is available through `MalaysiaZones.resolve(_:on:)`, `MalaysiaZones.on(_:)` and `MalaysiaZones.zone(_:)`; a retired zone lists its `successors`. District polygons run past the country border in places and a point within 500 metres of a district snaps to it, so a point up to 3.0 km outside Malaysia's land borders can resolve to a zone. A caller that cares should also check the country. `MalaysiaTimetable.revision` names the embedded data. See the Dart library's [docs/MALAYSIA_TIMES_MAINTENANCE.md](https://github.com/PillarsApp/adhan-dart/blob/master/docs/MALAYSIA_TIMES_MAINTENANCE.md) for the sources, the formats, the yearly update and the notes for the public API; `bin/check_malaysia_data.sh` checks a copied data release against its manifest.
+
+Data sources and credits:
+
+- Prayer timetables: JAKIM e-Solat ([www.e-solat.gov.my](https://www.e-solat.gov.my)) and, for the Selangor districts from 2027, the Selangor State Mufti Department ([www.muftiselangor.gov.my](https://www.muftiselangor.gov.my/takwim-solat/)).
+- District boundaries: [geoBoundaries](https://www.geoboundaries.org) gbOpen MYS ADM2 (sources: geoBoundaries, citypopulation.de), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The Putrajaya polygon and some borders between states come from geoBoundaries gbOpen MYS ADM1, and island positions were checked against ADM0. geoBoundaries records ADM1 and ADM0 as © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (Wambacher export), licensed under the [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. The polygons are simplified to 100 metres and quantized to 1e-5 degrees.
+- Place coordinates for the zone test fixtures and zone reference points: [GeoNames](https://www.geonames.org), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## Qibla Direction
 

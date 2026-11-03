@@ -27,6 +27,7 @@ params.adjustments.fajr = 2
 | shafaq | Used by the MoonsightingCommittee method to determine how to calculate Isha. See explanation of values below. |
 | polarCircleResolution | Which setting from the PolarCircleResolution enum to use for resolving prayer times inside the polar circles. Default value is `aqrabBalad`. |
 | hourAngleCorrection | Which setting from the HourAngleCorrection enum to use when correcting the time the sun reaches each prayer's angle. Default value is `iterative`. |
+| malaysiaZone | The code of the official Malaysian zone to read, such as `WLY01`, when the method is `malaysiaOfficial`. Default value is nil, which resolves the zone from the coordinates. |
 
 ## CalculationMethod
 
@@ -47,6 +48,8 @@ Preset calculation parameters for different regions.
 | tehran | Institute of Geophysics, University of Tehran. Early Isha time with an angle of 14°. Slightly later Fajr time with an angle of 17.7°. Calculates Maghrib based on the sun reaching an angle of 4.5° below the horizon. |
 | northAmerica | Also known as the ISNA method. Can be used for North America, but the moonsightingCommittee method is preferable. Gives later Fajr times and early Isha times with angles of 15°. |
 | other | Defaults to angles of 0°, should generally be used for making a custom method and setting your own values. |
+| unifiedLondonTimes | Unified London Prayer Times. Uses pre-calculated prayer times for London from embedded JSON data. No astronomical calculations are performed. |
+| malaysiaOfficial | Official Malaysian timetable published by JAKIM and the state muftis, read per prayer zone from embedded data. Where no row covers the zone and date, calculates with Fajr angle 18°, Isha angle 18° and the offsets Fajr +1, Sunrise −1, Dhuhr +3, Asr +1, Maghrib +2, Isha +1. |
 
 ## Madhab
 
