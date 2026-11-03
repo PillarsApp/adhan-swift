@@ -142,10 +142,14 @@ struct Astronomical {
         return Angle(radians: asin(term1 + term2))
     }
 
-    static func approximateTransit(longitude L: Angle, siderealTime Θ0: Angle, rightAscension α2: Angle) -> Double {
+    static func approximateTransit(longitude L: Angle, siderealTime Θ0: Angle, rightAscension α2: Angle,
+                                   correction: HourAngleCorrection = .iterative) -> Double {
         /* Equation from page Astronomical Algorithms 102 */
         let Lw = L * -1
         let m0 = ((α2 + Lw - Θ0) / 360).degrees.normalizedToScale(1)
+        guard correction.keepsTransitOnRequestedDay else {
+            return m0
+        }
         // For locations near the International Date Line, normalizeWithBound can produce
         // an m0 for the wrong calendar date.  We detect this by comparing m0 to a
         // generalized transit time based on the longitude. If they differ by more than

@@ -23,6 +23,8 @@ let cities: [City] = [
     City(name: "Auckland", latitude: -36.8485, longitude: 174.7633),
     City(name: "Apia", latitude: -13.8333, longitude: -171.7500),
     City(name: "BuenosAires", latitude: -34.6037, longitude: -58.3816),
+    City(name: "Suva", latitude: -18.1416, longitude: 178.4419),
+    City(name: "ChathamIslands", latitude: -43.95, longitude: -176.55),
 ]
 
 let methodKeys = ["mwl_mid", "mwl_seventh", "mwl_twilight", "msc_mid", "isna_mid", "singapore_mid"]
@@ -37,8 +39,9 @@ func usage() -> Never {
     let text = """
     usage: Probe [--polar aqrabBalad|aqrabYaum|unresolved] [--correction iterative|singlePass] [--bench]
 
-    Without --bench, prints the 10 city, 365 day, 6 method grid for 2026 as CSV:
+    Without --bench, prints the 12 city, 365 day, 6 method grid for 2026 as CSV:
     city,date,method,fajr,sunrise,dhuhr,asr,maghrib,isha (UTC epoch seconds, or nil).
+    The first ten cities are the original grid; Suva and ChathamIslands sit near ±180°.
     With --bench, prints the median microseconds per PrayerTimes construction for
     London Muslim World League over 100,000 constructions.
 

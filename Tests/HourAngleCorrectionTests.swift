@@ -14,6 +14,10 @@ class HourAngleCorrectionTests: XCTestCase {
     private let londonSummerDay = date(year: 2026, month: 7, day: 16)
     private let tromso = Coordinates(latitude: 69.6492, longitude: 18.9553)
     private let tromsoWinterDay = date(year: 2026, month: 1, day: 15)
+    private let suva = Coordinates(latitude: -18.1416, longitude: 178.4419)
+    private let suvaDayWhoseTransitWraps = date(year: 2026, month: 9, day: 20)
+    private let chathamIslands = Coordinates(latitude: -43.95, longitude: -176.55)
+    private let chathamDayWhoseTransitWraps = date(year: 2026, month: 2, day: 4)
 
     private func muslimWorldLeagueMiddleOfTheNight(_ correction: HourAngleCorrection) -> CalculationParameters {
         var params = CalculationMethod.muslimWorldLeague.params
@@ -33,6 +37,10 @@ class HourAngleCorrectionTests: XCTestCase {
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return formatter.string(from: date)
+    }
+
+    private func utcTimes(_ times: PrayerTimes) -> [String] {
+        return [times.fajr, times.sunrise, times.dhuhr, times.asr, times.maghrib, times.isha].map(utc)
     }
 
     func testDefaultHourAngleCorrectionIsIterative() {
@@ -74,5 +82,37 @@ class HourAngleCorrectionTests: XCTestCase {
 
     func testTromsoWinterDayWithIterativeAndUnresolvedReturnsNil() {
         XCTAssertNil(PrayerTimes(coordinates: tromso, date: tromsoWinterDay, calculationParameters: unresolved(.iterative)))
+    }
+
+    func testSuvaDayWhoseTransitWrapsWithSinglePassKeepsThe140Day() {
+        let times = PrayerTimes(coordinates: suva, date: suvaDayWhoseTransitWraps, calculationParameters: unresolved(.singlePass))!
+        XCTAssertEqual(utcTimes(times), [
+            "2026-09-20 16:45", "2026-09-20 17:57", "2026-09-21 00:00",
+            "2026-09-21 03:23", "2026-09-21 06:02", "2026-09-21 07:10",
+        ])
+    }
+
+    func testSuvaDayWhoseTransitWrapsWithIterativeKeepsTheDateLineCorrection() {
+        let times = PrayerTimes(coordinates: suva, date: suvaDayWhoseTransitWraps, calculationParameters: unresolved(.iterative))!
+        XCTAssertEqual(utcTimes(times), [
+            "2026-09-19 16:46", "2026-09-19 17:58", "2026-09-20 00:01",
+            "2026-09-20 03:23", "2026-09-20 06:02", "2026-09-20 07:10",
+        ])
+    }
+
+    func testChathamIslandsDayWhoseTransitWrapsWithSinglePassKeepsThe140Day() {
+        let times = PrayerTimes(coordinates: chathamIslands, date: chathamDayWhoseTransitWraps, calculationParameters: unresolved(.singlePass))!
+        XCTAssertEqual(utcTimes(times), [
+            "2026-02-03 14:52", "2026-02-03 16:49", "2026-02-04 00:01",
+            "2026-02-04 03:57", "2026-02-04 07:10", "2026-02-04 08:59",
+        ])
+    }
+
+    func testChathamIslandsDayWhoseTransitWrapsWithIterativeKeepsTheDateLineCorrection() {
+        let times = PrayerTimes(coordinates: chathamIslands, date: chathamDayWhoseTransitWraps, calculationParameters: unresolved(.iterative))!
+        XCTAssertEqual(utcTimes(times), [
+            "2026-02-04 14:54", "2026-02-04 16:51", "2026-02-05 00:01",
+            "2026-02-05 03:55", "2026-02-05 07:09", "2026-02-05 08:57",
+        ])
     }
 }

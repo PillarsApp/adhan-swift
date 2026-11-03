@@ -49,7 +49,8 @@ struct SolarTime {
         let solar = SolarCoordinates(julianDay: julianDay)
         let nextSolar = SolarCoordinates(julianDay: julianDay + 1)
 
-        let m0 = Astronomical.approximateTransit(longitude: coordinates.longitudeAngle, siderealTime: solar.apparentSiderealTime, rightAscension: solar.rightAscension)
+        let m0 = Astronomical.approximateTransit(longitude: coordinates.longitudeAngle, siderealTime: solar.apparentSiderealTime, rightAscension: solar.rightAscension,
+                                                 correction: hourAngleCorrection)
         let solarAltitude = Angle(-50.0 / 60.0)
 
         self.date = date
