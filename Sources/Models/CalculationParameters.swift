@@ -41,6 +41,10 @@ public struct CalculationParameters: Codable, Equatable {
     public var adjustments: PrayerAdjustments = PrayerAdjustments()
     public var rounding: Rounding = .nearest
     public var shafaq: Shafaq = .general
+
+    /// The code of the official Malaysian zone to read, such as WLY01, when the
+    /// method is `malaysiaOfficial`. Nil resolves the zone from the coordinates.
+    public var malaysiaZone: String? = nil
     var methodAdjustments: PrayerAdjustments = PrayerAdjustments()
 
     init(fajrAngle: Double, ishaAngle: Double) {
@@ -86,6 +90,7 @@ public struct CalculationParameters: Codable, Equatable {
         adjustments = try container.decode(PrayerAdjustments.self, forKey: .adjustments)
         rounding = try container.decode(Rounding.self, forKey: .rounding)
         shafaq = try container.decode(Shafaq.self, forKey: .shafaq)
+        malaysiaZone = try container.decodeIfPresent(String.self, forKey: .malaysiaZone)
         methodAdjustments = try container.decode(PrayerAdjustments.self, forKey: .methodAdjustments)
     }
 
