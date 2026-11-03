@@ -86,7 +86,7 @@ extension HourAngleCorrection {
         }
     }
 
-    var keepsTransitOnRequestedDay: Bool {
+    var anchorsTransitToLongitude: Bool {
         switch self {
         case .iterative:
             return true

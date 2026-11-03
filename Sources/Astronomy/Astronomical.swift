@@ -147,7 +147,7 @@ struct Astronomical {
         /* Equation from page Astronomical Algorithms 102 */
         let Lw = L * -1
         let m0 = ((α2 + Lw - Θ0) / 360).degrees.normalizedToScale(1)
-        guard correction.keepsTransitOnRequestedDay else {
+        guard correction.anchorsTransitToLongitude else {
             return m0
         }
         // For locations near the International Date Line, normalizeWithBound can produce
