@@ -34,10 +34,25 @@ class MalaysiaTimetableTests: XCTestCase {
         Coordinates(latitude: 3.1390, longitude: -.infinity),
     ]
 
+    private let outOfRangePoints = [
+        Coordinates(latitude: 3, longitude: 1e20),
+        Coordinates(latitude: 1e20, longitude: 101),
+        Coordinates(latitude: 3, longitude: 9.3e13),
+        Coordinates(latitude: 3, longitude: -1e20),
+        Coordinates(latitude: 90.00001, longitude: 101.6869),
+        Coordinates(latitude: 3.1390, longitude: 180.5),
+    ]
+
     private func official(zone: String? = nil) -> CalculationParameters {
         var params = CalculationMethod.malaysiaOfficial.params
         params.malaysiaZone = zone
         return params
+    }
+
+    private var fallbackPreset: CalculationParameters {
+        var preset = CalculationParameters(fajrAngle: 18, ishaAngle: 18)
+        preset.methodAdjustments = PrayerAdjustments(fajr: 1, sunrise: -1, dhuhr: 3, asr: 1, maghrib: 2, isha: 1)
+        return preset
     }
 
     private func instant(_ date: DateComponents, _ minuteOfDay: Int) -> Date {
@@ -155,10 +170,8 @@ class MalaysiaTimetableTests: XCTestCase {
         XCTAssertFalse(times.source.isOfficial)
         XCTAssertEqual(times.malaysiaZone?.code, "SBH07")
         XCTAssertNil(times.malaysiaDay)
-        var preset = CalculationParameters(fajrAngle: 18, ishaAngle: 18)
-        preset.methodAdjustments = PrayerAdjustments(fajr: 1, sunrise: -1, dhuhr: 3, asr: 1, maghrib: 2, isha: 1)
-        XCTAssertEqual(preset.method, .other)
-        let calculated = try XCTUnwrap(PrayerTimes(coordinates: kotaKinabalu, date: date, calculationParameters: preset))
+        XCTAssertEqual(fallbackPreset.method, .other)
+        let calculated = try XCTUnwrap(PrayerTimes(coordinates: kotaKinabalu, date: date, calculationParameters: fallbackPreset))
         XCTAssertEqual(six(times), six(calculated))
     }
 
@@ -265,9 +278,42 @@ class MalaysiaTimetableTests: XCTestCase {
         XCTAssertNil(PrayerTimes(coordinates: Coordinates(latitude: .nan, longitude: .nan), date: date(year: 2027, month: 1, day: 1), calculationParameters: official(zone: "SBH07")))
     }
 
-    func testResolveReturnsNilForNonFiniteInput() {
-        for point in nonFinitePoints {
+    func testResolveReturnsNilOutsideTheCoordinateRange() {
+        for point in nonFinitePoints + outOfRangePoints {
             XCTAssertNil(MalaysiaZones.resolve(point, on: nov2), "\(point)")
+        }
+    }
+
+    func testOutOfRangeCoordinateWithNoManualZoneCalculatesWithThePreset() throws {
+        XCTAssertNil(PrayerTimes(coordinates: Coordinates(latitude: 1e20, longitude: 101), date: nov2, calculationParameters: official()))
+        XCTAssertNil(PrayerTimes(coordinates: Coordinates(latitude: 3, longitude: 1e20), date: nov2, calculationParameters: official()))
+        let farEast = Coordinates(latitude: 3, longitude: 9.3e13)
+        let times = try XCTUnwrap(PrayerTimes(coordinates: farEast, date: nov2, calculationParameters: official()))
+        XCTAssertEqual(times.source, .calculatedNoZone)
+        XCTAssertNil(times.malaysiaZone)
+        let calculated = try XCTUnwrap(PrayerTimes(coordinates: farEast, date: nov2, calculationParameters: fallbackPreset))
+        XCTAssertEqual(six(times), six(calculated))
+    }
+
+    func testDateNoTimetableCanHoldHasNoZone() throws {
+        let wly01 = try XCTUnwrap(MalaysiaZones.zone("WLY01"))
+        for year in [214_749, Int.min] {
+            let farOff = date(year: year, month: 1, day: 1)
+            XCTAssertNil(MalaysiaZones.resolve(kualaLumpur, on: farOff), "\(year)")
+            XCTAssertEqual(MalaysiaZones.on(farOff), [], "\(year)")
+            XCTAssertFalse(wly01.inForce(on: farOff), "\(year)")
+        }
+        let times = try XCTUnwrap(PrayerTimes(coordinates: kualaLumpur, date: date(year: 214_749, month: 1, day: 1), calculationParameters: official()))
+        XCTAssertEqual(times.source, .calculatedNoZone)
+    }
+
+    func testResolveWhereTheArithmeticOutgrows32Bits() throws {
+        for code in ["JHR01", "SBH03"] {
+            let zone = try XCTUnwrap(MalaysiaZones.zone(code))
+            XCTAssertEqual(MalaysiaZones.resolve(zone.referencePoint, on: nov2), zone)
+        }
+        for latitude in [90.0, -90.0] {
+            XCTAssertNil(MalaysiaZones.resolve(Coordinates(latitude: latitude, longitude: 101.6869), on: nov2))
         }
     }
 
