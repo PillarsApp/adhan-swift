@@ -68,6 +68,27 @@ public struct CalculationParameters: Codable, Equatable {
         self.maghribAngle = maghribAngle
     }
 
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        method = try container.decode(CalculationMethod.self, forKey: .method)
+        fajrAngle = try container.decode(Double.self, forKey: .fajrAngle)
+        maghribAngle = try container.decodeIfPresent(Double.self, forKey: .maghribAngle)
+        ishaAngle = try container.decode(Double.self, forKey: .ishaAngle)
+        ishaInterval = try container.decode(Minute.self, forKey: .ishaInterval)
+        madhab = try container.decode(Madhab.self, forKey: .madhab)
+        highLatitudeRule = try container.decodeIfPresent(HighLatitudeRule.self, forKey: .highLatitudeRule)
+        if let polarCircleResolution = try container.decodeIfPresent(PolarCircleResolution.self, forKey: .polarCircleResolution) {
+            self.polarCircleResolution = polarCircleResolution
+        }
+        if let hourAngleCorrection = try container.decodeIfPresent(HourAngleCorrection.self, forKey: .hourAngleCorrection) {
+            self.hourAngleCorrection = hourAngleCorrection
+        }
+        adjustments = try container.decode(PrayerAdjustments.self, forKey: .adjustments)
+        rounding = try container.decode(Rounding.self, forKey: .rounding)
+        shafaq = try container.decode(Shafaq.self, forKey: .shafaq)
+        methodAdjustments = try container.decode(PrayerAdjustments.self, forKey: .methodAdjustments)
+    }
+
     func nightPortions(using coordinates: Coordinates) -> (fajr: Double, isha: Double) {
         let currentHighLatitudeRule = highLatitudeRule ?? .recommended(for: coordinates)
 
