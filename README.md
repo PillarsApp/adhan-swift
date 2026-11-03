@@ -89,14 +89,23 @@ available resolution strategies.
 #### Keeping the times of version 1.4.0
 
 Versions after 1.4.0 correct the time at which the sun reaches each prayer's
-angle iteratively, and validate that the times come out in order. This moves Isha
-on summer days above about 48.5° latitude, by up to 4 minutes at London's latitude
-and by up to about 40 minutes at Reykjavik's, and, with
-`polarCircleResolution` set to `unresolved`, returns nil on some polar days that
-previously produced times. To keep the times version 1.4.0 computed, set the
+angle iteratively, validate that the times come out in order, and at longitudes
+near ±180° pick the solar transit nearest the longitude's mean noon, so consecutive
+days never jump by a day. The times move most where
+the sun's altitude changes slowly. Measured for 2026: Isha at London moves 4
+minutes on 16 July, Isha at Reykjavik (ISNA) 41 minutes on 25 August, Isha at
+Edmonton with 18° angles 43 minutes on 13 May, and at Tromso Asr moves 50 minutes
+on 21 January and Moonsighting Committee Fajr 116 minutes on 17 May. With
+`polarCircleResolution` set to `unresolved`, some polar days that produced times
+now return nil. To keep the times version 1.4.0 computed, set the
 `hourAngleCorrection` calculation parameter to `singlePass` and
-`polarCircleResolution` to `unresolved`. Fixes outside the correction, such as
-the one for longitudes near ±180°, apply under both values.
+`polarCircleResolution` to `unresolved`. `singlePass` also keeps 1.4.0's choice
+of day near ±180°, where on some days, at Suva or the Chatham Islands for
+example, its times fall a day apart from those `iterative` returns.
+
+Two changes since 1.4.0 apply under both values: with `highLatitudeRule` nil,
+latitudes south of 48°S now get the same rule as those north of 48°N, and
+`SunnahTimes` now honours `rounding`.
 
 See [`hourAngleCorrection`](METHODS.md#houranglecorrection).
 
