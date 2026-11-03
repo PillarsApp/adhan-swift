@@ -27,6 +27,7 @@ let package = Package(
             name: "Tests",
             dependencies: ["Adhan"],
             path: "Tests",
+            exclude: ["Probe"],
             resources: [.copy("Resources")]
         ),
     ]
