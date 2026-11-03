@@ -92,10 +92,13 @@ Versions after 1.4.0 correct the time at which the sun reaches each prayer's
 angle iteratively, validate that the times come out in order, and at longitudes
 near ±180° pick the solar transit nearest the longitude's mean noon, so consecutive
 days never jump by a day. The times move most where
-the sun's altitude changes slowly. Measured for 2026: Isha at London moves 4
-minutes on 16 July, Isha at Reykjavik (ISNA) 41 minutes on 25 August, Isha at
-Edmonton with 18° angles 43 minutes on 13 May, and at Tromso Asr moves 50 minutes
-on 21 January and Moonsighting Committee Fajr 116 minutes on 17 May. With
+the sun's altitude changes slowly. Measured for 2026 with `highLatitudeRule` set to
+`middleOfTheNight`: Isha at London moves 4 minutes on 16 July, Isha at Reykjavik
+(ISNA) 41 minutes on 25 August, and Isha at Edmonton with 18° angles 43 minutes
+on 13 May. With `highLatitudeRule` left nil, which means `seventhOfTheNight`
+above 48°, those three places do not move on any day of 2026. Asr at Tromso
+moves 50 minutes on 21 January and Moonsighting Committee Fajr 116 minutes on
+17 May, with or without the rule. With
 `polarCircleResolution` set to `unresolved`, some polar days that produced times
 now return nil. To keep the times version 1.4.0 computed, set the
 `hourAngleCorrection` calculation parameter to `singlePass` and

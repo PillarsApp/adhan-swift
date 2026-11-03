@@ -45,11 +45,14 @@ import Foundation
 
   Applies the hour angle correction once and keeps every time it produces,
   as version 1.4.0 did. The two values differ most where the sun's altitude
-  changes slowly. Measured for 2026: Isha at London differs by 4 minutes on
-  16 July, Isha at Reykjavik (ISNA) by 41 minutes on 25 August, Isha at
-  Edmonton with 18° angles by 43 minutes on 13 May, and at Tromso Asr
-  differs by 50 minutes on 21 January and Moonsighting Committee Fajr by
-  116 minutes on 17 May. Combined with `polarCircleResolution` set to
+  changes slowly. Measured for 2026 with `highLatitudeRule` set to
+  `middleOfTheNight`: Isha at London differs by 4 minutes on 16 July, Isha
+  at Reykjavik (ISNA) by 41 minutes on 25 August, and Isha at Edmonton with
+  18° angles by 43 minutes on 13 May. With `highLatitudeRule` nil, which
+  means `seventhOfTheNight` above 48°, those three places do not differ on
+  any day of 2026. At Tromso Asr differs by 50 minutes on 21 January and
+  Moonsighting Committee Fajr by 116 minutes on 17 May, with or without the
+  rule. Combined with `polarCircleResolution` set to
   `unresolved`, polar days behave as they did in 1.4.0 too.
 
   `singlePass` also keeps 1.4.0's choice of day at longitudes near ±180°.
