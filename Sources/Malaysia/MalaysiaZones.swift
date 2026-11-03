@@ -46,8 +46,8 @@ public enum MalaysiaZones {
 
     /// The zone in force at `coordinates` on `date`, or nil outside every zone,
     /// for a latitude not within -90...90 or a longitude not within -180...180,
-    /// NaN included, and for a date without a year, month and day. A
-    /// manual-only zone such as SWK09 is never returned here.
+    /// NaN included, and for a date without a year, month and day or with a
+    /// year, month or day outside the 32-bit range. A manual-only zone such as SWK09 is never returned here.
     /// Points up to 3.0 km outside Malaysia's land borders can resolve to a
     /// zone, so a caller that must not serve a neighbouring country should also
     /// check the country.
@@ -60,7 +60,8 @@ public enum MalaysiaZones {
     }
 
     /// Every zone in force on `date`, in catalog order, manual-only zones
-    /// included. Empty for a date without a year, month and day.
+    /// included. Empty for a date without a year, month and day, or with a year,
+    /// month or day outside the 32-bit range.
     public static func on(_ date: DateComponents) -> [MalaysiaZone] {
         return all.filter { $0.inForce(on: date) }
     }

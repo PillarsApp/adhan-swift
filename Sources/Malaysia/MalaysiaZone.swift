@@ -71,6 +71,9 @@ public struct MalaysiaZone: Hashable, Sendable, CustomStringConvertible {
         return record.successors.compactMap(MalaysiaZones.zone)
     }
 
+    /// Whether this zone is in force on `date`. False for a date without a
+    /// year, month and day, or with a year, month or day outside the 32-bit
+    /// range.
     public func inForce(on date: DateComponents) -> Bool {
         guard let day = MalaysiaZone.dayNumber(date) else {
             return false

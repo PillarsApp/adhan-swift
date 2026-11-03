@@ -38,16 +38,18 @@ xcrun swift-demangle --simplified < "$work/adhan.ll" | awk '
     sub(/"?\(.*/, "", name)
     sub(/^specialized /, "", name)
     sub(/^static /, "", name)
-    keep = (name ~ /^MalaysiaZone(Map|s)?\./)
+    keep = (name ~ /Malaysia/ || name ~ /^PrayerTimes\.init$/ || name ~ /^one-time initialization function for (map|all|byCode|shared|deltaCells)$/)
 }
 keep { print name "\t" $0 }
 /^}/ { keep = 0 }
-' > "$work/zone-map.ll"
+' > "$work/path.ll"
+
+grep -E '^(MalaysiaZone\.|MalaysiaZones\.|MalaysiaZoneMap\.(zoneAt|day)\b)' "$work/path.ll" > "$work/coordinate-path.ll"
 
 status=0
 
 absent() {
-    if grep -E "$2" "$work/zone-map.ll" > "$work/hits"; then
+    if grep -E "$3" "$2" | grep -v -E "$4" > "$work/hits"; then
         echo "FAIL  $1"
         cut -c1-200 "$work/hits" | sed 's/^/      /'
         status=1
@@ -57,7 +59,7 @@ absent() {
 }
 
 present() {
-    if scope=$2 pattern=$3 awk -F'\t' '$1 ~ ENVIRON["scope"] && $2 ~ ENVIRON["pattern"] { found = 1 } END { exit !found }' "$work/zone-map.ll"; then
+    if scope=$2 pattern=$3 awk -F'\t' '$1 ~ ENVIRON["scope"] && $2 ~ ENVIRON["pattern"] { found = 1 } END { exit !found }' "$work/path.ll"; then
         echo "ok    $1"
     else
         echo "FAIL  $1"
@@ -65,13 +67,16 @@ present() {
     fi
 }
 
-echo "arm64_32-apple-watchos9.0, $(grep -c '^define ' "$work/adhan.ll") functions, $(cut -f1 "$work/zone-map.ll" | sort -u | wc -l | tr -d ' ') in the zone map and the zone catalog"
-absent "no checked 32-bit multiply" 'mul\.with\.overflow\.i32'
-absent "no Double converted to a 32-bit integer" 'fpto[su]i double [^ ]+ to i32'
+functions=$(cut -f1 "$work/path.ll" | sort -u | wc -l | tr -d ' ')
+echo "arm64_32-apple-watchos9.0, $(grep -c '^define ' "$work/adhan.ll") functions, $functions in the Malaysian lookup scope"
+absent "no checked 32-bit multiply on the path, except the minute-to-seconds conversion of user adjustments" "$work/path.ll" 'mul\.with\.overflow\.i32' '^MalaysiaOfficialTimes\.lookup'
+absent "no Double converted to a 32-bit integer on the path, except the Hanafi shift in minutes" "$work/path.ll" 'fpto[su]i double [^ ]+ to i32' '^MalaysiaOfficialTimes\.hanafiShift'
+absent "no 32-bit checked arithmetic or Double conversion on the coordinate and day-number path" "$work/coordinate-path.ll" '(add|sub|mul)\.with\.overflow\.i32|fpto[su]i double [^ ]+ to i32' '^$'
 present "the region minimums start at Int64.max" '^MalaysiaZoneMap\.parse' 'phi i64 \[ 9223372036854775807,'
 present "the region maximums start at Int64.min" '^MalaysiaZoneMap\.parse' 'phi i64 \[ -9223372036854775808,'
 present "the edge products are 64-bit" '^MalaysiaZoneMap\.zoneAt' 'smul\.with\.overflow\.i64'
 present "the coordinates and the margins convert to 64-bit integers" '^MalaysiaZoneMap\.zoneAt' 'fptosi double [^ ]+ to i64'
+present "the polyline accumulators are 64-bit" '^MalaysiaZoneMap\.decodePolyline' 'sadd\.with\.overflow\.i64'
 present "the day number is 64-bit" '^MalaysiaZone\.' 'mul (nsw )?i64 [^,]+, 10000'
 
 exit $status

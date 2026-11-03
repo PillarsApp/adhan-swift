@@ -307,7 +307,7 @@ class MalaysiaTimetableTests: XCTestCase {
         XCTAssertEqual(times.source, .calculatedNoZone)
     }
 
-    func testResolveWhereTheArithmeticOutgrows32Bits() throws {
+    func testResolveAtTheFarthestReferencePointsAndBothPoles() throws {
         for code in ["JHR01", "SBH03"] {
             let zone = try XCTUnwrap(MalaysiaZones.zone(code))
             XCTAssertEqual(MalaysiaZones.resolve(zone.referencePoint, on: nov2), zone)

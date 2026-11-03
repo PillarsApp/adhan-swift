@@ -12,6 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Native Swift Toolchain Tests
         run: set -o pipefail && swift test -v --parallel | xcbeautify
+      - name: Check the Malaysian lookup for watchOS arm64_32
+        run: sh bin/check_malaysia_arm64_32.sh
 
   linux:
     name: "Linux"
