@@ -26,19 +26,19 @@
 import Foundation
 
 struct MalaysiaZoneRecord {
-    static let alwaysInForceFrom = 0
-    static let alwaysInForceTo = 99999999
+    static let alwaysInForceFrom: Int64 = 0
+    static let alwaysInForceTo: Int64 = 99999999
 
     let code: String
     let state: String
     let areas: String
-    let validFromDay: Int
-    let validToDay: Int
+    let validFromDay: Int64
+    let validToDay: Int64
     let successors: [String]
     let referenceLatitude: Double
     let referenceLongitude: Double
 
-    func inForce(_ day: Int) -> Bool {
+    func inForce(_ day: Int64) -> Bool {
         return day >= validFromDay && day <= validToDay
     }
 }
@@ -75,7 +75,7 @@ struct MalaysiaZoneMap {
     static func parse(_ text: [UInt8]) -> MalaysiaZoneMap? {
         var zones = [MalaysiaZoneRecord]()
         var specialAreas = [MalaysiaSpecialArea]()
-        var arcs = [[Int]]()
+        var arcs = [[Int64]]()
         var regions = [Region]()
         for line in text.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true) {
             let fields = line.split(separator: UInt8(ascii: "\t"), omittingEmptySubsequences: false)
@@ -119,7 +119,7 @@ struct MalaysiaZoneMap {
                 guard fields.count >= 3 else {
                     return nil
                 }
-                var regionArcs = [[Int]]()
+                var regionArcs = [[Int64]]()
                 for index in string(1).split(separator: " ") {
                     guard let arc = Int(index), arc >= 0, arc < arcs.count else {
                         return nil
@@ -145,7 +145,7 @@ struct MalaysiaZoneMap {
         return zonesByCode[code]
     }
 
-    func zoneAt(latitude: Double, longitude: Double, day: Int) -> String? {
+    func zoneAt(latitude: Double, longitude: Double, day: Int64) -> String? {
         guard let region = regionIndexAt(latitude: latitude, longitude: longitude) else {
             return nil
         }
@@ -183,29 +183,29 @@ struct MalaysiaZoneMap {
         return nearest
     }
 
-    static func quantize(_ degrees: Double) -> Int {
-        return Int((degrees * 100000).rounded())
+    static func quantize(_ degrees: Double) -> Int64 {
+        return Int64((degrees * 100000).rounded())
     }
 
-    private static func day(fromISO iso: String, whenEmpty: Int) -> Int? {
+    private static func day(fromISO iso: String, whenEmpty: Int64) -> Int64? {
         if iso.isEmpty {
             return whenEmpty
         }
         let parts = iso.split(separator: "-")
-        guard parts.count == 3, let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2]) else {
+        guard parts.count == 3, let year = Int64(parts[0]), let month = Int64(parts[1]), let day = Int64(parts[2]) else {
             return nil
         }
         return year * 10000 + month * 100 + day
     }
 
-    static func decodePolyline(_ encoded: ArraySlice<UInt8>) -> [Int] {
-        var values = [Int]()
-        var lat = 0
-        var lon = 0
-        var result = 0
+    static func decodePolyline(_ encoded: ArraySlice<UInt8>) -> [Int64] {
+        var values = [Int64]()
+        var lat: Int64 = 0
+        var lon: Int64 = 0
+        var result: Int64 = 0
         var shift = 0
         for unit in encoded {
-            let byte = Int(unit) - 63
+            let byte = Int64(unit) - 63
             result |= (byte & 0x1f) << shift
             shift += 5
             if byte >= 0x20 {
@@ -299,20 +299,20 @@ struct MalaysiaZoneMap {
     }
 
     private struct Region {
-        let arcs: [[Int]]
+        let arcs: [[Int64]]
         let rows: [ZoneRow]
-        let minLat: Int
-        let maxLat: Int
-        let minLon: Int
-        let maxLon: Int
+        let minLat: Int64
+        let maxLat: Int64
+        let minLon: Int64
+        let maxLon: Int64
 
-        init(arcs: [[Int]], rows: [ZoneRow]) {
+        init(arcs: [[Int64]], rows: [ZoneRow]) {
             self.arcs = arcs
             self.rows = rows
-            var minLat = 1 << 40
-            var maxLat = -(1 << 40)
-            var minLon = 1 << 40
-            var maxLon = -(1 << 40)
+            var minLat = Int64.max
+            var maxLat = Int64.min
+            var minLon = Int64.max
+            var maxLon = Int64.min
             for arc in arcs {
                 var i = 0
                 while i + 1 < arc.count {
@@ -329,7 +329,7 @@ struct MalaysiaZoneMap {
             self.maxLon = maxLon
         }
 
-        func contains(lat: Int, lon: Int) -> Bool {
+        func contains(lat: Int64, lon: Int64) -> Bool {
             if lat < minLat || lat > maxLat || lon < minLon || lon > maxLon {
                 return false
             }
@@ -355,13 +355,13 @@ struct MalaysiaZoneMap {
             return inside
         }
 
-        func nearBounds(lat: Int, lon: Int, metres: Double) -> Bool {
-            let latMargin = Int((metres / metresPerDegreeLatitude * 100000).rounded(.up))
-            let lonMargin = Int((metres / (metresPerDegreeLongitudeAtEquator * cos(Double(lat) / 100000 * Double.pi / 180)) * 100000).rounded(.up))
+        func nearBounds(lat: Int64, lon: Int64, metres: Double) -> Bool {
+            let latMargin = Int64((metres / metresPerDegreeLatitude * 100000).rounded(.up))
+            let lonMargin = Int64((metres / (metresPerDegreeLongitudeAtEquator * cos(Double(lat) / 100000 * Double.pi / 180)) * 100000).rounded(.up))
             return lat >= minLat - latMargin && lat <= maxLat + latMargin && lon >= minLon - lonMargin && lon <= maxLon + lonMargin
         }
 
-        func distanceMetres(lat: Int, lon: Int) -> Double {
+        func distanceMetres(lat: Int64, lon: Int64) -> Double {
             let lonScale = metresPerDegreeLongitudeAtEquator * cos(Double(lat) / 100000 * Double.pi / 180) / 100000
             let latScale = metresPerDegreeLatitude / 100000
             var best = Double.infinity

@@ -90,14 +90,14 @@ public struct MalaysiaZone: Hashable, Sendable, CustomStringConvertible {
         hasher.combine(code)
     }
 
-    static func dayNumber(_ date: DateComponents) -> Int? {
+    static func dayNumber(_ date: DateComponents) -> Int64? {
         guard let year = date.year, let month = date.month, let day = date.day else {
             return nil
         }
-        return year * 10000 + month * 100 + day
+        return Int64(year) * 10000 + Int64(month) * 100 + Int64(day)
     }
 
-    private static func date(_ yyyymmdd: Int) -> DateComponents {
-        return DateComponents(year: yyyymmdd / 10000, month: yyyymmdd / 100 % 100, day: yyyymmdd % 100)
+    private static func date(_ yyyymmdd: Int64) -> DateComponents {
+        return DateComponents(year: Int(yyyymmdd / 10000), month: Int(yyyymmdd / 100 % 100), day: Int(yyyymmdd % 100))
     }
 }
