@@ -69,8 +69,15 @@ present() {
 
 functions=$(cut -f1 "$work/path.ll" | sort -u | wc -l | tr -d ' ')
 echo "arm64_32-apple-watchos9.0, $(grep -c '^define ' "$work/adhan.ll") functions, $functions in the Malaysian lookup scope"
-absent "no checked 32-bit multiply on the path, except the minute-to-seconds conversion of user adjustments" "$work/path.ll" 'mul\.with\.overflow\.i32' '^MalaysiaOfficialTimes\.lookup'
-absent "no Double converted to a 32-bit integer on the path, except the Hanafi shift in minutes" "$work/path.ll" 'fpto[su]i double [^ ]+ to i32' '^MalaysiaOfficialTimes\.hanafiShift'
+absent "no checked 32-bit multiply on the path, except the minute-to-seconds conversion of user adjustments" "$work/path.ll" 'mul\.with\.overflow\.i32' '^MalaysiaOfficialTimes\.lookup	.*smul\.with\.overflow\.i32\(i32 [^,]+, i32 60\)'
+absent "no Double converted to a 32-bit integer on the path, except the Hanafi shift in minutes" "$work/path.ll" 'fpto[su]i double [^ ]+ to i32' '^MalaysiaOfficialTimes\.hanafiShift	'
+hanafi_conversions=$(grep -c -E '^MalaysiaOfficialTimes\.hanafiShift	.*fpto[su]i double [^ ]+ to i32' "$work/path.ll")
+if [ "$hanafi_conversions" -eq 1 ]; then
+    echo "ok    the Hanafi shift holds exactly one Double conversion to 32 bits"
+else
+    echo "FAIL  the Hanafi shift holds $hanafi_conversions Double conversions to 32 bits, not one"
+    status=1
+fi
 absent "no 32-bit checked arithmetic or Double conversion on the coordinate and day-number path" "$work/coordinate-path.ll" '(add|sub|mul)\.with\.overflow\.i32|fpto[su]i double [^ ]+ to i32' '^$'
 present "the region minimums start at Int64.max" '^MalaysiaZoneMap\.parse' 'phi i64 \[ 9223372036854775807,'
 present "the region maximums start at Int64.min" '^MalaysiaZoneMap\.parse' 'phi i64 \[ -9223372036854775808,'
