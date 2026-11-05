@@ -82,7 +82,7 @@ public struct MalaysiaDay: Sendable {
 public enum MalaysiaTimetable {
     /// The revision of the embedded data: the first eight hexadecimal digits of
     /// the SHA-256 of the times file, a hyphen, and the same for the zones file.
-    public static let revision = "badfebbb-4a6644c7"
+    public static let revision = "badfebbb-714bce11"
 
     /// The published row for `zone` on `date`, or nil when the embedded data
     /// has no row for that zone and year, or `date` has no year, month and day.
