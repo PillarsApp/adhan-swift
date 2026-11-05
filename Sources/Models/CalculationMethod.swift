@@ -93,6 +93,15 @@ import Foundation
   Uses pre-calculated prayer times from a JSON lookup table specifically for London.
   Bypasses astronomical calculations entirely and uses authoritative prayer time data.
 
+  **malaysiaOfficial**
+
+  The official Malaysian timetable. Reads the published times for the zone in force at the coordinates, or for
+  `CalculationParameters.malaysiaZone` when set. A manual zone wins over the coordinates, which are then not validated
+  on a day the zone has a published row. Where no zone covers the coordinates or no row covers the zone and date, it
+  calculates at the coordinates and validates them like every other method, with the angles and method adjustments in
+  the parameters, which are a Fajr angle of 18°, an Isha angle of 18° and adjustments that approximate the table unless
+  changed.
+
 */
 public enum CalculationMethod: String, Codable, CaseIterable {
 
@@ -137,6 +146,9 @@ public enum CalculationMethod: String, Codable, CaseIterable {
     
     // Unified London Times
     case unifiedLondonTimes
+
+    // Official Malaysian timetable
+    case malaysiaOfficial
 
     public var params: CalculationParameters {
         switch(self) {
@@ -185,6 +197,10 @@ public enum CalculationMethod: String, Codable, CaseIterable {
             return CalculationParameters(fajrAngle: 0, ishaAngle: 0, method: self)
         case .unifiedLondonTimes:
             return CalculationParameters(fajrAngle: 0, ishaAngle: 0, method: self)
+        case .malaysiaOfficial:
+            var params = CalculationParameters(fajrAngle: 18, ishaAngle: 18, method: self)
+            params.methodAdjustments = PrayerAdjustments(fajr: 1, sunrise: -1, dhuhr: 3, asr: 1, maghrib: 2, isha: 1)
+            return params
         }
     }
 }

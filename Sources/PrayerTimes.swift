@@ -50,8 +50,25 @@ public struct PrayerTimes {
     public let date: DateComponents
     public let calculationParameters: CalculationParameters
 
+    /// Where the times came from: `official` for `unifiedLondonTimes` and for a
+    /// published Malaysian row, `calculated` for every other method, and
+    /// `calculatedNoZone` or `calculatedNoRow` when `malaysiaOfficial` fell
+    /// back to calculating.
+    public let source: PrayerTimesSource
+
+    /// The official Malaysian zone the times were read for, or would have been:
+    /// the manual zone when `CalculationParameters.malaysiaZone` is set, else the
+    /// zone resolved from the coordinates. Nil for every other method, for a
+    /// manual code the data does not know and outside every zone.
+    public let malaysiaZone: MalaysiaZone?
+
+    /// The published row behind the times, before adjustments and the Hanafi
+    /// shift. Nil unless `source` is official and the method is
+    /// `malaysiaOfficial`.
+    public let malaysiaDay: MalaysiaDay?
+
     public init?(coordinates: Coordinates, date: DateComponents, calculationParameters: CalculationParameters) {
-        
+
         // Special handling for London lookup times
         if calculationParameters.method == .unifiedLondonTimes {
             guard let londonTimes = Self.initializeFromLondonLookup(date: date, calculationParameters: calculationParameters) else {
@@ -66,15 +83,45 @@ public struct PrayerTimes {
             self.coordinates = coordinates
             self.date = date
             self.calculationParameters = calculationParameters
+            self.source = .official
+            self.malaysiaZone = nil
+            self.malaysiaDay = nil
             return
         }
-        // Latitude must be within ±90° and the date must include a year, month and day
-        // that can form a valid calendar date
-        guard abs(coordinates.latitude) <= 90,
-            date.year != nil,
+        guard date.year != nil,
             date.month != nil,
             date.day != nil,
             date.isValidDate(in: .gregorianUTC) else {
+            return nil
+        }
+
+        var source = PrayerTimesSource.calculated
+        var malaysiaZone: MalaysiaZone? = nil
+        if calculationParameters.method == .malaysiaOfficial {
+            switch MalaysiaOfficialTimes.lookup(coordinates: coordinates, date: date, parameters: calculationParameters) {
+            case .official(let times, let zone, let day):
+                self.coordinates = coordinates
+                self.date = date
+                self.calculationParameters = calculationParameters
+                self.source = .official
+                self.malaysiaZone = zone
+                self.malaysiaDay = day
+                self.fajr = times.fajr
+                self.sunrise = times.sunrise
+                self.dhuhr = times.dhuhr
+                self.asr = times.asr
+                self.maghrib = times.maghrib
+                self.isha = times.isha
+                return
+            case .noZone:
+                source = .calculatedNoZone
+            case .noRow(let zone):
+                source = .calculatedNoRow
+                malaysiaZone = zone
+            }
+        }
+
+        guard abs(coordinates.latitude) <= 90 else {
             return nil
         }
 
@@ -100,6 +147,9 @@ public struct PrayerTimes {
         self.coordinates = coordinates
         self.date = date
         self.calculationParameters = calculationParameters
+        self.source = source
+        self.malaysiaZone = malaysiaZone
+        self.malaysiaDay = nil
         self.fajr = result.fajr
         self.sunrise = result.sunrise
         self.dhuhr = result.dhuhr

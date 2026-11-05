@@ -21,7 +21,12 @@ let package = Package(
         .target(
             name: "Adhan",
             path: "Sources",
-            resources: [.copy("Resources/LondonPrayerTimes.json")]
+            exclude: ["Resources/MALAYSIA_MANIFEST"],
+            resources: [
+                .copy("Resources/LondonPrayerTimes.json"),
+                .copy("Resources/malaysia_times.txt"),
+                .copy("Resources/malaysia_zones.txt"),
+            ]
         ),
         .testTarget(
             name: "Tests",

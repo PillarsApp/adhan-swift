@@ -45,6 +45,24 @@ class CalculationParametersCodableTests: XCTestCase {
         XCTAssertEqual(params, expected)
     }
 
+    func testDecodesJSONWrittenBeforeMalaysiaZoneExisted() throws {
+        let params = try decode(muslimWorldLeagueJSONWrittenBy140, addingKeys: ",\"polarCircleResolution\":\"aqrabBalad\",\"hourAngleCorrection\":\"iterative\"")
+        XCTAssertEqual(params, CalculationMethod.muslimWorldLeague.params)
+        XCTAssertNil(params.malaysiaZone)
+    }
+
+    func testMalaysiaZoneRoundTripsAndIsOmittedWhenNil() throws {
+        var params = CalculationMethod.malaysiaOfficial.params
+        params.malaysiaZone = "WLY01"
+        let data = try JSONEncoder().encode(params)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["malaysiaZone"] as? String, "WLY01")
+        XCTAssertEqual(try JSONDecoder().decode(CalculationParameters.self, from: data), params)
+        let withoutZone = try JSONEncoder().encode(CalculationMethod.malaysiaOfficial.params)
+        let plain = try XCTUnwrap(JSONSerialization.jsonObject(with: withoutZone) as? [String: Any])
+        XCTAssertNil(plain["malaysiaZone"])
+    }
+
     func testEncodingWritesBothKeysAndRoundTrips() throws {
         var params = CalculationMethod.muslimWorldLeague.params
         params.polarCircleResolution = .unresolved

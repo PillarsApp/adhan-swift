@@ -81,22 +81,30 @@ struct SolarTime {
         self.sunset = sunsetDate
     }
 
-    func timeForSolarAngle(_ angle: Angle, afterTransit: Bool) -> DateComponents? {
-        let hours = Astronomical.correctedHourAngle(approximateTransit: approxTransit, angle: angle, coordinates: observer, afterTransit: afterTransit, siderealTime: solar.apparentSiderealTime,
+    func hoursForSolarAngle(_ angle: Angle, afterTransit: Bool) -> Double {
+        return Astronomical.correctedHourAngle(approximateTransit: approxTransit, angle: angle, coordinates: observer, afterTransit: afterTransit, siderealTime: solar.apparentSiderealTime,
                                                rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension,
                                                declination: solar.declination, previousDeclination: prevSolar.declination, nextDeclination: nextSolar.declination,
                                                correction: hourAngleCorrection)
-        return date.settingHour(hours)
+    }
+
+    func timeForSolarAngle(_ angle: Angle, afterTransit: Bool) -> DateComponents? {
+        return date.settingHour(hoursForSolarAngle(angle, afterTransit: afterTransit))
     }
 
     // hours from transit
     func afternoon(shadowLength: Double) -> DateComponents? {
+        return afternoonHours(shadowLength: shadowLength).flatMap(date.settingHour)
+    }
+
+    func afternoonHours(shadowLength: Double) -> Double? {
         let tangent = Angle(fabs(observer.latitude - solar.declination.degrees))
         let inverse = shadowLength + tan(tangent.radians)
         let angle = Angle(radians: atan(1.0 / inverse))
 
         guard hourAngleCorrection.validatesTimes else {
-            return timeForSolarAngle(angle, afterTransit: true)
+            let hours = hoursForSolarAngle(angle, afterTransit: true)
+            return date.settingHour(hours) == nil ? nil : hours
         }
 
         // A valid afternoon time requires that the sun's disc is fully above
@@ -115,13 +123,14 @@ struct SolarTime {
         }
 
         // Confirm the resulting time is after solar transit (noon) to ensure this is afternoon.
-        guard let result = timeForSolarAngle(angle, afterTransit: true),
+        let hours = hoursForSolarAngle(angle, afterTransit: true)
+        guard let result = date.settingHour(hours),
             let resultDate = Calendar.gregorianUTC.date(from: result),
             let transitDate = Calendar.gregorianUTC.date(from: transit),
             resultDate > transitDate else {
                 return nil
         }
 
-        return result
+        return hours
     }
 }
