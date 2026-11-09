@@ -79,6 +79,16 @@ class MathTests: XCTestCase {
         XCTAssertEqual(comps5.hour, 3)
         XCTAssertEqual(comps5.minute, 30)
     }
+
+    func testAnHourBeyondThirtyTwoBitsHasNoTimeComponents() {
+        let date = Calendar.gregorianUTC.dateComponents([.year, .month, .day], from: Date())
+
+        XCTAssertEqual(date.settingHour(2147483647.5)?.hour, 2147483647)
+        XCTAssertEqual(date.settingHour(-2147483648)?.hour, -2147483648)
+        XCTAssertNil(date.settingHour(2147483648))
+        XCTAssertNil(date.settingHour(-2147483648.5))
+        XCTAssertNil(date.settingHour(-5.03e9))
+    }
     
     func testMinuteRounding() {
         let cal = Calendar(identifier: Calendar.Identifier.gregorian)

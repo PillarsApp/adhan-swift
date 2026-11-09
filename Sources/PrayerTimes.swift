@@ -50,22 +50,95 @@ public struct PrayerTimes {
     public let date: DateComponents
     public let calculationParameters: CalculationParameters
 
+    private let origin: Origin
+
+    enum Origin {
+        case calculated
+        case calculatedNoZone
+        case calculatedNoRow(MalaysiaZone)
+        case londonOfficial
+        case official(OfficialRow)
+
+        init(official row: OfficialRow) {
+            self = .official(row)
+        }
+
+        init(calculatedWithout zone: MalaysiaZone?) {
+            self = zone.map(Origin.calculatedNoRow) ?? .calculatedNoZone
+        }
+    }
+
     /// Where the times came from: `official` for `unifiedLondonTimes` and for a
-    /// published Malaysian row, `calculated` for every other method, and
+    /// published row, `calculated` for every other method, and
     /// `calculatedNoZone` or `calculatedNoRow` when `malaysiaOfficial` fell
     /// back to calculating.
-    public let source: PrayerTimesSource
+    public var source: PrayerTimesSource {
+        switch origin {
+        case .calculated:
+            return .calculated
+        case .calculatedNoZone:
+            return .calculatedNoZone
+        case .calculatedNoRow:
+            return .calculatedNoRow
+        case .londonOfficial, .official:
+            return .official
+        }
+    }
 
-    /// The official Malaysian zone the times were read for, or would have been:
-    /// the manual zone when `CalculationParameters.malaysiaZone` is set, else the
-    /// zone resolved from the coordinates. Nil for every other method, for a
-    /// manual code the data does not know and outside every zone.
-    public let malaysiaZone: MalaysiaZone?
+    /// The official Malaysian zone behind the times when the row came from the
+    /// embedded Malaysian timetable, or the zone `malaysiaOfficial` would have
+    /// read when it fell back to calculating: the manual zone when
+    /// `CalculationParameters.malaysiaZone` is set, else the zone resolved from
+    /// the coordinates. Nil for every other row and method, for a manual code
+    /// the data does not know and outside every zone.
+    public var malaysiaZone: MalaysiaZone? {
+        switch origin {
+        case .calculatedNoRow(let zone):
+            return zone
+        case .official(let row):
+            guard case .embeddedMalaysia(let zone) = row.provenance else {
+                return nil
+            }
+            return zone
+        case .calculated, .calculatedNoZone, .londonOfficial:
+            return nil
+        }
+    }
 
     /// The published row behind the times, before adjustments and the Hanafi
-    /// shift. Nil unless `source` is official and the method is
-    /// `malaysiaOfficial`.
-    public let malaysiaDay: MalaysiaDay?
+    /// shift. Nil unless the row came from the embedded Malaysian timetable,
+    /// so `PrayerTimes(official:)` on a `MalaysiaTimetable.source` row reports
+    /// it as `malaysiaOfficial` does.
+    public var malaysiaDay: MalaysiaDay? {
+        guard case .official(let row) = origin else {
+            return nil
+        }
+        return MalaysiaDay(row: row)
+    }
+
+    /// The published row behind official times, before adjustments and the
+    /// Hanafi shift. Nil for calculated times and for the London lookup.
+    public var officialRow: OfficialRow? {
+        switch origin {
+        case .official(let row):
+            return row
+        case .calculated, .calculatedNoZone, .calculatedNoRow, .londonOfficial:
+            return nil
+        }
+    }
+
+    init(_ times: DayResult, coordinates: Coordinates, date: DateComponents, calculationParameters: CalculationParameters, origin: Origin) {
+        self.fajr = times.fajr
+        self.sunrise = times.sunrise
+        self.dhuhr = times.dhuhr
+        self.asr = times.asr
+        self.maghrib = times.maghrib
+        self.isha = times.isha
+        self.coordinates = coordinates
+        self.date = date
+        self.calculationParameters = calculationParameters
+        self.origin = origin
+    }
 
     public init?(coordinates: Coordinates, date: DateComponents, calculationParameters: CalculationParameters) {
 
@@ -74,18 +147,7 @@ public struct PrayerTimes {
             guard let londonTimes = Self.initializeFromLondonLookup(date: date, calculationParameters: calculationParameters) else {
                 return nil
             }
-            self.fajr = londonTimes.fajr
-            self.sunrise = londonTimes.sunrise
-            self.dhuhr = londonTimes.dhuhr
-            self.asr = londonTimes.asr
-            self.maghrib = londonTimes.maghrib
-            self.isha = londonTimes.isha
-            self.coordinates = coordinates
-            self.date = date
-            self.calculationParameters = calculationParameters
-            self.source = .official
-            self.malaysiaZone = nil
-            self.malaysiaDay = nil
+            self.init(londonTimes, coordinates: coordinates, date: date, calculationParameters: calculationParameters, origin: .londonOfficial)
             return
         }
         guard date.year != nil,
@@ -95,29 +157,27 @@ public struct PrayerTimes {
             return nil
         }
 
-        var source = PrayerTimesSource.calculated
-        var malaysiaZone: MalaysiaZone? = nil
+        var origin = Origin.calculated
         if calculationParameters.method == .malaysiaOfficial {
-            switch MalaysiaOfficialTimes.lookup(coordinates: coordinates, date: date, parameters: calculationParameters) {
-            case .official(let times, let zone, let day):
-                self.coordinates = coordinates
-                self.date = date
-                self.calculationParameters = calculationParameters
-                self.source = .official
-                self.malaysiaZone = zone
-                self.malaysiaDay = day
-                self.fajr = times.fajr
-                self.sunrise = times.sunrise
-                self.dhuhr = times.dhuhr
-                self.asr = times.asr
-                self.maghrib = times.maghrib
-                self.isha = times.isha
-                return
-            case .noZone:
-                source = .calculatedNoZone
-            case .noRow(let zone):
-                source = .calculatedNoRow
-                malaysiaZone = zone
+            do {
+                switch try MalaysiaTimetable.source.lookup(coordinates, on: date, localityId: calculationParameters.malaysiaZone.map { LocalityId($0) }) {
+                case .published(let row):
+                    if let times = PrayerTimes.assembleOfficial(row, parameters: calculationParameters, adjustments: calculationParameters.adjustments) {
+                        self.init(times, coordinates: coordinates, date: date, calculationParameters: calculationParameters, origin: Origin(official: row))
+                        return
+                    }
+                    origin = Origin(calculatedWithout: MalaysiaZones.zone(row.locality.id.rawValue))
+                case .noLocality:
+                    origin = .calculatedNoZone
+                case .noRow(let locality):
+                    origin = Origin(calculatedWithout: MalaysiaZones.zone(locality.id.rawValue))
+                }
+            } catch {
+                if let code = calculationParameters.malaysiaZone {
+                    origin = Origin(calculatedWithout: MalaysiaZones.zone(code))
+                } else {
+                    origin = Origin(calculatedWithout: MalaysiaZones.resolve(coordinates, on: date))
+                }
             }
         }
 
@@ -144,18 +204,7 @@ public struct PrayerTimes {
             return nil
         }
 
-        self.coordinates = coordinates
-        self.date = date
-        self.calculationParameters = calculationParameters
-        self.source = source
-        self.malaysiaZone = malaysiaZone
-        self.malaysiaDay = nil
-        self.fajr = result.fajr
-        self.sunrise = result.sunrise
-        self.dhuhr = result.dhuhr
-        self.asr = result.asr
-        self.maghrib = result.maghrib
-        self.isha = result.isha
+        self.init(result, coordinates: coordinates, date: date, calculationParameters: calculationParameters, origin: origin)
     }
 
     /// Prayer times computed for a single day of solar geometry
@@ -401,7 +450,7 @@ public struct PrayerTimes {
         }
     }
     
-    private static func initializeFromLondonLookup(date: DateComponents, calculationParameters: CalculationParameters) -> (fajr: Date, sunrise: Date, dhuhr: Date, asr: Date, maghrib: Date, isha: Date)? {
+    private static func initializeFromLondonLookup(date: DateComponents, calculationParameters: CalculationParameters) -> DayResult? {
         guard let londonTimes = LondonTimesLookup.getTimes(for: date) else {
             return nil
         }
@@ -446,7 +495,7 @@ public struct PrayerTimes {
             .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)
             .roundedMinute(rounding: calculationParameters.rounding)
         
-        return (fajr: fajr, sunrise: sunrise, dhuhr: dhuhr, asr: asr, maghrib: maghrib, isha: isha)
+        return DayResult(fajr: fajr, sunrise: sunrise, dhuhr: dhuhr, asr: asr, maghrib: maghrib, isha: isha)
     }
 
     static let minimumPrayerGap: TimeInterval = 5 * 60

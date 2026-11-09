@@ -14,6 +14,13 @@ jobs:
         run: set -o pipefail && swift test -v --parallel | xcbeautify
       - name: Check the Malaysian lookup for watchOS arm64_32
         run: sh bin/check_malaysia_arm64_32.sh
+      - name: Check the published lookup for watchOS arm64_32
+        run: sh bin/check_published_arm64_32.sh
+      - name: Race the first decode of every published line under ThreadSanitizer
+        run: |
+          set -o pipefail
+          swift test --sanitize=thread --filter 'PublishedTimetableTests/testConcurrentFirstDecodes' 2>&1 | tee tsan.log | xcbeautify
+          grep -q -E 'Executed [1-9][0-9]* tests?, with 0 failures' tsan.log || { echo "the ThreadSanitizer filter matched no test"; exit 1; }
 
   linux:
     name: "Linux"

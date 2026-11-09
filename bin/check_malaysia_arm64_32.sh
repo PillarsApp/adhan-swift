@@ -34,11 +34,16 @@ fi
 xcrun swift-demangle --simplified < "$work/adhan.ll" | awk '
 /^define / {
     name = $0
-    sub(/^define [^@]*@"?/, "", name)
-    sub(/"?\(.*/, "", name)
+    sub(/^define [^@]*@/, "", name)
+    if (substr(name, 1, 1) == "\"") {
+        name = substr(name, 2)
+        sub(/"\(.*/, "", name)
+    } else {
+        sub(/\(.*/, "", name)
+    }
     sub(/^specialized /, "", name)
     sub(/^static /, "", name)
-    keep = (name ~ /Malaysia/ || name ~ /^PrayerTimes\.init$/ || name ~ /^one-time initialization function for (map|all|byCode|shared|deltaCells)$/)
+    keep = (name ~ /Malaysia/ || name ~ /DeltaCellsCodec/ || name ~ /^PrayerTimes\.(init|assembleOfficial|officialAsr|hanafiShiftMinutes)\(/ || name ~ /^one-time initialization function for (map|all|byCode|shared|deltaCells|source|columns)$/)
 }
 keep { print name "\t" $0 }
 /^}/ { keep = 0 }
@@ -69,9 +74,9 @@ present() {
 
 functions=$(cut -f1 "$work/path.ll" | sort -u | wc -l | tr -d ' ')
 echo "arm64_32-apple-watchos9.0, $(grep -c '^define ' "$work/adhan.ll") functions, $functions in the Malaysian lookup scope"
-absent "no checked 32-bit multiply on the path, except the minute-to-seconds conversion of user adjustments" "$work/path.ll" 'mul\.with\.overflow\.i32' '^MalaysiaOfficialTimes\.lookup	.*smul\.with\.overflow\.i32\(i32 [^,]+, i32 60\)'
-absent "no Double converted to a 32-bit integer on the path, except the Hanafi shift in minutes" "$work/path.ll" 'fpto[su]i double [^ ]+ to i32' '^MalaysiaOfficialTimes\.hanafiShift	'
-hanafi_conversions=$(grep -c -E '^MalaysiaOfficialTimes\.hanafiShift	.*fpto[su]i double [^ ]+ to i32' "$work/path.ll")
+absent "no checked 32-bit multiply on the path" "$work/path.ll" 'mul\.with\.overflow\.i32' '^$'
+absent "no Double converted to a 32-bit integer on the path, except the Hanafi shift in minutes" "$work/path.ll" 'fpto[su]i double [^ ]+ to i32' '^PrayerTimes\.hanafiShiftMinutes\('
+hanafi_conversions=$(grep -c -E '^PrayerTimes\.hanafiShiftMinutes\(.*fpto[su]i double [^ ]+ to i32' "$work/path.ll")
 if [ "$hanafi_conversions" -eq 1 ]; then
     echo "ok    the Hanafi shift holds exactly one Double conversion to 32 bits"
 else
@@ -79,6 +84,7 @@ else
     status=1
 fi
 absent "no 32-bit checked arithmetic or Double conversion on the coordinate and day-number path" "$work/coordinate-path.ll" '(add|sub|mul)\.with\.overflow\.i32|fpto[su]i double [^ ]+ to i32' '^$'
+present "the scope reaches the time reader nested inside the cell codec" '^readHhmm #[0-9]+ .* in (static )?DeltaCellsCodec\.decode' '.'
 present "the region minimums start at Int64.max" '^MalaysiaZoneMap\.parse' 'phi i64 \[ 9223372036854775807,'
 present "the region maximums start at Int64.min" '^MalaysiaZoneMap\.parse' 'phi i64 \[ -9223372036854775808,'
 present "the edge products are 64-bit" '^MalaysiaZoneMap\.zoneAt' 'smul\.with\.overflow\.i64'

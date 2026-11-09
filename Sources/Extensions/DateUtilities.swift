@@ -61,10 +61,16 @@ internal extension DateComponents {
         let calculatedMinutes = floor((value - calculatedHours) * 60)
         let calculatedSeconds = floor((value - (calculatedHours + calculatedMinutes/60)) * 60 * 60)
         
+        guard let hours = Int32(exactly: calculatedHours),
+            let minutes = Int32(exactly: calculatedMinutes),
+            let seconds = Int32(exactly: calculatedSeconds) else {
+            return nil
+        }
+        
         var components = self
-        components.hour = Int(calculatedHours)
-        components.minute = Int(calculatedMinutes)
-        components.second = Int(calculatedSeconds)
+        components.hour = Int(hours)
+        components.minute = Int(minutes)
+        components.second = Int(seconds)
         
         return components
     }

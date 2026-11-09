@@ -25,21 +25,17 @@
 
 import Foundation
 
-struct SolarTime {
+struct SolarDay {
     let date: DateComponents
     let observer: Coordinates
     let solar: SolarCoordinates
-    let transit: DateComponents
-    let sunrise: DateComponents
-    let sunset: DateComponents
+    let prevSolar: SolarCoordinates
+    let nextSolar: SolarCoordinates
+    let approxTransit: Double
+    let hourAngleCorrection: HourAngleCorrection
+    let transitHours: Double
 
-    private let prevSolar: SolarCoordinates
-    private let nextSolar: SolarCoordinates
-    private let approxTransit: Double
-    private let hourAngleCorrection: HourAngleCorrection
-
-    init?(date: DateComponents, coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection = .iterative) {
-        // calculations need to occur at 0h0m UTC
+    init(date: DateComponents, coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection) {
         var date = date
         date.hour = 0
         date.minute = 0
@@ -48,10 +44,8 @@ struct SolarTime {
         let prevSolar = SolarCoordinates(julianDay: julianDay - 1)
         let solar = SolarCoordinates(julianDay: julianDay)
         let nextSolar = SolarCoordinates(julianDay: julianDay + 1)
-
         let m0 = Astronomical.approximateTransit(longitude: coordinates.longitudeAngle, siderealTime: solar.apparentSiderealTime, rightAscension: solar.rightAscension,
                                                  correction: hourAngleCorrection)
-        let solarAltitude = Angle(-50.0 / 60.0)
 
         self.date = date
         self.observer = coordinates
@@ -60,25 +54,8 @@ struct SolarTime {
         self.nextSolar = nextSolar
         self.approxTransit = m0
         self.hourAngleCorrection = hourAngleCorrection
-
-        let transitTime = Astronomical.correctedTransit(approximateTransit: m0, longitude: coordinates.longitudeAngle, siderealTime: solar.apparentSiderealTime,
-                                                     rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension)
-        let sunriseTime = Astronomical.correctedHourAngle(approximateTransit: m0, angle: solarAltitude, coordinates: coordinates, afterTransit: false, siderealTime: solar.apparentSiderealTime,
-                                                       rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension,
-                                                       declination: solar.declination, previousDeclination: prevSolar.declination, nextDeclination: nextSolar.declination,
-                                                       correction: hourAngleCorrection)
-        let sunsetTime = Astronomical.correctedHourAngle(approximateTransit: m0, angle: solarAltitude, coordinates: coordinates, afterTransit: true, siderealTime: solar.apparentSiderealTime,
-                                                      rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension,
-                                                      declination: solar.declination, previousDeclination: prevSolar.declination, nextDeclination: nextSolar.declination,
-                                                      correction: hourAngleCorrection)
-
-        guard let transitDate = date.settingHour(transitTime), let sunriseDate = date.settingHour(sunriseTime), let sunsetDate = date.settingHour(sunsetTime) else {
-            return nil
-        }
-
-        self.transit = transitDate
-        self.sunrise = sunriseDate
-        self.sunset = sunsetDate
+        self.transitHours = Astronomical.correctedTransit(approximateTransit: m0, longitude: coordinates.longitudeAngle, siderealTime: solar.apparentSiderealTime,
+                                                          rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension)
     }
 
     func hoursForSolarAngle(_ angle: Angle, afterTransit: Bool) -> Double {
@@ -86,15 +63,6 @@ struct SolarTime {
                                                rightAscension: solar.rightAscension, previousRightAscension: prevSolar.rightAscension, nextRightAscension: nextSolar.rightAscension,
                                                declination: solar.declination, previousDeclination: prevSolar.declination, nextDeclination: nextSolar.declination,
                                                correction: hourAngleCorrection)
-    }
-
-    func timeForSolarAngle(_ angle: Angle, afterTransit: Bool) -> DateComponents? {
-        return date.settingHour(hoursForSolarAngle(angle, afterTransit: afterTransit))
-    }
-
-    // hours from transit
-    func afternoon(shadowLength: Double) -> DateComponents? {
-        return afternoonHours(shadowLength: shadowLength).flatMap(date.settingHour)
     }
 
     func afternoonHours(shadowLength: Double) -> Double? {
@@ -107,24 +75,20 @@ struct SolarTime {
             return date.settingHour(hours) == nil ? nil : hours
         }
 
-        // A valid afternoon time requires that the sun's disc is fully above
-        // the horizon. The hourAngle calculation is based on the midpoint of
-        // the sun's disc.
         let solarAngularDiameter = 32.0 / 60.0
-        guard angle.degrees > solarAngularDiameter / 2 else {
+        let discIsFullyAboveTheHorizonAtAsr = angle.degrees > solarAngularDiameter / 2
+        guard discIsFullyAboveTheHorizonAtAsr else {
             return nil
         }
 
         let maxAltitude = Astronomical.altitudeOfCelestialBody(observerLatitude: observer.latitudeAngle, declination: solar.declination, localHourAngle: Angle(0))
-
-        // Confirm the sun's maximum altitude on this day actually reaches the computed angle.
         guard maxAltitude.degrees >= angle.degrees else {
             return nil
         }
 
-        // Confirm the resulting time is after solar transit (noon) to ensure this is afternoon.
         let hours = hoursForSolarAngle(angle, afterTransit: true)
         guard let result = date.settingHour(hours),
+            let transit = date.settingHour(transitHours),
             let resultDate = Calendar.gregorianUTC.date(from: result),
             let transitDate = Calendar.gregorianUTC.date(from: transit),
             resultDate > transitDate else {
@@ -132,5 +96,40 @@ struct SolarTime {
         }
 
         return hours
+    }
+}
+
+struct SolarTime {
+    let day: SolarDay
+    let transit: DateComponents
+    let sunrise: DateComponents
+    let sunset: DateComponents
+
+    init?(date: DateComponents, coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection = .iterative) {
+        let day = SolarDay(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection)
+        let solarAltitude = Angle(-50.0 / 60.0)
+        let sunriseTime = day.hoursForSolarAngle(solarAltitude, afterTransit: false)
+        let sunsetTime = day.hoursForSolarAngle(solarAltitude, afterTransit: true)
+
+        guard let transitDate = day.date.settingHour(day.transitHours), let sunriseDate = day.date.settingHour(sunriseTime), let sunsetDate = day.date.settingHour(sunsetTime) else {
+            return nil
+        }
+
+        self.day = day
+        self.transit = transitDate
+        self.sunrise = sunriseDate
+        self.sunset = sunsetDate
+    }
+
+    func timeForSolarAngle(_ angle: Angle, afterTransit: Bool) -> DateComponents? {
+        return day.date.settingHour(day.hoursForSolarAngle(angle, afterTransit: afterTransit))
+    }
+
+    func afternoon(shadowLength: Double) -> DateComponents? {
+        return afternoonHours(shadowLength: shadowLength).flatMap(day.date.settingHour)
+    }
+
+    func afternoonHours(shadowLength: Double) -> Double? {
+        return day.afternoonHours(shadowLength: shadowLength)
     }
 }

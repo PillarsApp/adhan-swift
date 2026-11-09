@@ -48,12 +48,16 @@ struct Options {
     var malaysiaResolve: String?
     var malaysiaHanafi = false
     var benchMalaysia = false
+    var dumpOfficial: String?
+    var resolveOfficial: String?
+    var benchPublished: String?
 }
 
 func usage() -> Never {
     let text = """
     usage: Probe [--polar aqrabBalad|aqrabYaum|unresolved] [--correction iterative|singlePass] [--bench]
            Probe --malaysia-all-zones | --malaysia-resolve <file> | --malaysia-hanafi | --bench-malaysia
+           Probe --dump-official <ott> | --resolve-official <ott> | --bench-published <ott>
 
     Without --bench, prints the 12 city, 365 day, 6 method grid for 2026 as CSV:
     city,date,method,fajr,sunrise,dhuhr,asr,maghrib,isha (UTC epoch seconds, or nil).
@@ -70,6 +74,11 @@ func usage() -> Never {
     --malaysia-hanafi prints zone,date,correction,shafiAsr,hanafiAsr on the 15th of
     January, April, July and October of each year, for each hour angle correction.
     --bench-malaysia prints the cold first lookup in ms and the warm medians in µs.
+    --dump-official decodes an OTT 1 file and prints, for every locality and covered day,
+    P,id,date,column,instant per published column and A,id,date,madhab,six instants from
+    PrayerTimes(official:) with the Umm al-Qura preset, or N,id,date,kind for a day without a row.
+    --resolve-official reads lat,lon,yyyy-mm-dd lines on stdin and appends the locality id or nil.
+    --bench-published prints init, first lookup, repeated lookup and validateAllRows timings.
 
     """
     FileHandle.standardError.write(text.data(using: .utf8)!)
@@ -104,6 +113,21 @@ func parse(_ arguments: [String]) -> Options {
             options.malaysiaHanafi = true
         case "--bench-malaysia":
             options.benchMalaysia = true
+        case "--dump-official":
+            guard let path = rest.popFirst() else {
+                usage()
+            }
+            options.dumpOfficial = path
+        case "--resolve-official":
+            guard let path = rest.popFirst() else {
+                usage()
+            }
+            options.resolveOfficial = path
+        case "--bench-published":
+            guard let path = rest.popFirst() else {
+                usage()
+            }
+            options.benchPublished = path
         default:
             usage()
         }
@@ -323,7 +347,13 @@ func benchMalaysia() {
 }
 
 let options = parse(CommandLine.arguments)
-if options.benchMalaysia {
+if let path = options.dumpOfficial {
+    FileHandle.standardOutput.write(dumpOfficial(path).data(using: .utf8)!)
+} else if let path = options.resolveOfficial {
+    FileHandle.standardOutput.write(resolveOfficial(path).data(using: .utf8)!)
+} else if let path = options.benchPublished {
+    benchPublished(path)
+} else if options.benchMalaysia {
     benchMalaysia()
 } else if options.malaysiaAllZones {
     FileHandle.standardOutput.write(malaysiaAllZones().data(using: .utf8)!)

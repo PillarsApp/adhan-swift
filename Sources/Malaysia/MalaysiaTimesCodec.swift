@@ -48,9 +48,6 @@ enum MalaysiaTimesCodec {
 
     private static let space = UInt8(ascii: " ")
     private static let newline = UInt8(ascii: "\n")
-    private static let tilde = UInt8(ascii: "~")
-    private static let deltaCells = Array("abcdefg".utf8)
-    private static let minutesInDay = 1440
 
     static func decode(_ text: [UInt8]) -> [MalaysiaZoneYear]? {
         var zoneYears = [MalaysiaZoneYear]()
@@ -95,55 +92,6 @@ enum MalaysiaTimesCodec {
     }
 
     private static func decodeDays(_ data: ArraySlice<UInt8>) -> [UInt16]? {
-        var minutes = [UInt16]()
-        var position = data.startIndex
-
-        func readHhmm() -> UInt16? {
-            guard position + 4 <= data.endIndex else {
-                return nil
-            }
-            var value = 0
-            for byte in data[position..<(position + 4)] {
-                guard byte >= UInt8(ascii: "0"), byte <= UInt8(ascii: "9") else {
-                    return nil
-                }
-                value = value * 10 + Int(byte - UInt8(ascii: "0"))
-            }
-            position += 4
-            return UInt16((value / 100) * 60 + value % 100)
-        }
-
-        for _ in 0..<fieldCount {
-            guard let value = readHhmm() else {
-                return nil
-            }
-            minutes.append(value)
-        }
-        while position < data.endIndex {
-            let previousDay = minutes.count - fieldCount
-            for column in 0..<fieldCount {
-                guard position < data.endIndex else {
-                    return nil
-                }
-                let cell = data[position]
-                position += 1
-                if cell == tilde {
-                    guard let value = readHhmm() else {
-                        return nil
-                    }
-                    minutes.append(value)
-                } else {
-                    guard let index = deltaCells.firstIndex(of: cell) else {
-                        return nil
-                    }
-                    let value = Int(minutes[previousDay + column]) + index - 3
-                    guard value >= 0, value < minutesInDay else {
-                        return nil
-                    }
-                    minutes.append(UInt16(value))
-                }
-            }
-        }
-        return minutes
+        return try? DeltaCellsCodec.decode(data, columns: fieldCount)
     }
 }

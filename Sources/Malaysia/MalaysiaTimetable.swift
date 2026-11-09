@@ -31,31 +31,51 @@ import Foundation
 public struct MalaysiaDay: Sendable {
     public let zone: MalaysiaZone
 
-    public let date: DateComponents
+    let row: OfficialRow
+
+    public var date: DateComponents {
+        return row.date
+    }
 
     /// Imsak, the end of the pre-dawn meal.
-    public let imsak: Date
+    public var imsak: Date {
+        return row.instant(column: 0)
+    }
 
     /// Subuh, the dawn prayer.
-    public let subuh: Date
+    public var subuh: Date {
+        return row.instant(column: 1)
+    }
 
     /// Syuruk, sunrise.
-    public let syuruk: Date
+    public var syuruk: Date {
+        return row.instant(column: 2)
+    }
 
     /// Dhuha, the forenoon prayer.
-    public let dhuha: Date
+    public var dhuha: Date {
+        return row.instant(column: 3)
+    }
 
     /// Zohor, the noon prayer.
-    public let zohor: Date
+    public var zohor: Date {
+        return row.instant(column: 4)
+    }
 
     /// Asar, the afternoon prayer as published and corrected, by the Shafi rule.
-    public let asar: Date
+    public var asar: Date {
+        return row.instant(column: 5)
+    }
 
     /// Maghrib, the sunset prayer.
-    public let maghrib: Date
+    public var maghrib: Date {
+        return row.instant(column: 6)
+    }
 
     /// Isyak, the night prayer.
-    public let isyak: Date
+    public var isyak: Date {
+        return row.instant(column: 7)
+    }
 
     public var revision: String {
         return MalaysiaTimetable.revision
@@ -65,17 +85,12 @@ public struct MalaysiaDay: Sendable {
         return .official
     }
 
-    init(zone: MalaysiaZone, day: MalaysiaTimetable.PublishedDay) {
+    init?(row: OfficialRow) {
+        guard case .embeddedMalaysia(let zone) = row.provenance else {
+            return nil
+        }
         self.zone = zone
-        self.date = day.date
-        self.imsak = day.instant(.imsak)
-        self.subuh = day.instant(.subuh)
-        self.syuruk = day.instant(.syuruk)
-        self.dhuha = day.instant(.dhuha)
-        self.zohor = day.instant(.zohor)
-        self.asar = day.instant(.asar)
-        self.maghrib = day.instant(.maghrib)
-        self.isyak = day.instant(.isyak)
+        self.row = row
     }
 }
 
@@ -85,87 +100,13 @@ public enum MalaysiaTimetable {
     public static let revision = "badfebbb-714bce11"
 
     /// The published row for `zone` on `date`, or nil when the embedded data
-    /// has no row for that zone and year, or `date` has no year, month and day.
+    /// has no row for that zone and year, or `date` has no year, month and day
+    /// or is not a calendar day.
     public static func day(_ zone: MalaysiaZone, on date: DateComponents) -> MalaysiaDay? {
-        guard let day = publishedDay(zone, on: date) else {
+        guard case .published(let row)? = try? source.lookup(zone.referencePoint, on: date, localityId: LocalityId(zone.code)) else {
             return nil
         }
-        return MalaysiaDay(zone: zone, day: day)
-    }
-
-    enum Column: Int {
-        case imsak, subuh, syuruk, dhuha, zohor, asar, maghrib, isyak
-    }
-
-    struct PublishedDay {
-        private static let utcOffset: TimeInterval = 8 * 3600
-
-        let date: DateComponents
-        let midnight: Date
-        let minutes: ArraySlice<UInt16>
-
-        func instant(_ column: Column, plus adjustment: Minute = 0) -> Date {
-            let minuteOfDay = Int(minutes[minutes.startIndex + column.rawValue]) + adjustment
-            return midnight.addingTimeInterval(minuteOfDay.timeInterval - PublishedDay.utcOffset)
-        }
-    }
-
-    static func publishedDay(_ zone: MalaysiaZone, on date: DateComponents) -> PublishedDay? {
-        let calendar = Calendar.gregorianUTC
-        guard let year = date.year, let month = date.month, let day = date.day,
-            let midnight = calendar.date(from: DateComponents(year: year, month: month, day: day)) else {
-            return nil
-        }
-        let resolved = calendar.dateComponents([.year, .month, .day], from: midnight)
-        guard let resolvedYear = resolved.year,
-            let dayOfYear = calendar.ordinality(of: .day, in: .year, for: midnight),
-            let minutes = MalaysiaTimesLookup.shared.row(zone: zone.code, year: resolvedYear, dayIndex: dayOfYear - 1) else {
-            return nil
-        }
-        return PublishedDay(date: resolved, midnight: midnight, minutes: minutes)
-    }
-}
-
-enum MalaysiaOfficialTimes {
-    case official(PrayerTimes.DayResult, MalaysiaZone, MalaysiaDay)
-    case noZone
-    case noRow(MalaysiaZone)
-
-    static func lookup(coordinates: Coordinates, date: DateComponents, parameters: CalculationParameters) -> MalaysiaOfficialTimes {
-        let zone: MalaysiaZone?
-        if let code = parameters.malaysiaZone {
-            zone = MalaysiaZones.zone(code)
-        } else {
-            zone = MalaysiaZones.resolve(coordinates, on: date)
-        }
-        guard let zone else {
-            return .noZone
-        }
-        guard let published = MalaysiaTimetable.publishedDay(zone, on: date) else {
-            return .noRow(zone)
-        }
-        let adjustments = parameters.adjustments
-        var asr = adjustments.asr
-        if parameters.madhab == .hanafi {
-            asr += hanafiShift(on: date, at: zone.referencePoint, hourAngleCorrection: parameters.hourAngleCorrection)
-        }
-        let times = PrayerTimes.DayResult(
-            fajr: published.instant(.subuh, plus: adjustments.fajr),
-            sunrise: published.instant(.syuruk, plus: adjustments.sunrise),
-            dhuhr: published.instant(.zohor, plus: adjustments.dhuhr),
-            asr: published.instant(.asar, plus: asr),
-            maghrib: published.instant(.maghrib, plus: adjustments.maghrib),
-            isha: published.instant(.isyak, plus: adjustments.isha))
-        return .official(times, zone, MalaysiaDay(zone: zone, day: published))
-    }
-
-    static func hanafiShift(on date: DateComponents, at coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection) -> Minute {
-        guard let solar = SolarTime(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection),
-            let hanafi = solar.afternoonHours(shadowLength: Madhab.hanafi.shadowLength),
-            let shafi = solar.afternoonHours(shadowLength: Madhab.shafi.shadowLength) else {
-            return 0
-        }
-        return Int(((hanafi - shafi) * 60).rounded())
+        return MalaysiaDay(row: row)
     }
 }
 
