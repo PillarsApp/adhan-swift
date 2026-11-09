@@ -23,7 +23,7 @@ params.adjustments.fajr = 2
 | madhab | Which setting from the Madhab enum to use for calculating Asr. |
 | highLatitudeRule | Which setting from the HighLatitudeRule enum to use for calculating the minimum time for Fajr and the maximum time for Isha. |
 | adjustments | PrayerAdjustments struct with custom prayer time adjustments in minutes for each prayer time. |
-| rounding | The behavior for rounding prayer times. Either to nearest minute, to the higher minute, or none.  |
+| rounding | The behavior for rounding prayer times. Either to nearest minute, to the higher minute, none, or `startsUpSunriseDown`, which rounds sunrise down and every other time, sunnah times included, up to the next minute whenever any part of a minute is past it.  |
 | shafaq | Used by the MoonsightingCommittee method to determine how to calculate Isha. See explanation of values below. |
 | polarCircleResolution | Which setting from the PolarCircleResolution enum to use for resolving prayer times inside the polar circles. Default value is `aqrabBalad`. |
 | hourAngleCorrection | Which setting from the HourAngleCorrection enum to use when correcting the time the sun reaches each prayer's angle. Default value is `iterative`. |

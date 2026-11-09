@@ -27,19 +27,22 @@ import Foundation
 
 internal extension Date {
 
-    func roundedMinute(rounding: Rounding = .nearest) -> Date {
+    func roundedToWholeSecondMinute(_ direction: MinuteRounding) -> Date {
         let cal: Calendar = .gregorianUTC
         var components = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: self)
 
         let minute: Double = Double(components.minute ?? 0)
         let second: Double = Double(components.second ?? 0)
 
-        switch rounding {
+        switch direction {
         case .nearest:
             components.minute = Int(minute + round(second/60))
             components.second = 0
         case .up:
             components.minute = Int(minute + ceil(second/60))
+            components.second = 0
+        case .down:
+            components.minute = Int(minute)
             components.second = 0
         case .none:
             components.minute = Int(minute)
@@ -48,13 +51,38 @@ internal extension Date {
 
         return cal.date(from: components) ?? self
     }
+
+    func roundedToMicrosecondMinute(_ direction: MinuteRounding) -> Date {
+        let perMinute = Int64.microsecondsPerMinute
+        let exact = Int64((timeIntervalSince1970 * 1_000_000).rounded())
+        let past = ((exact % perMinute) + perMinute) % perMinute
+        let minute = exact - past
+
+        let rounded: Int64
+        switch direction {
+        case .nearest:
+            rounded = past >= perMinute / 2 ? minute + perMinute : minute
+        case .up:
+            rounded = past > 0 ? minute + perMinute : minute
+        case .down:
+            rounded = minute
+        case .none:
+            rounded = exact
+        }
+
+        return Date(timeIntervalSince1970: Double(rounded) / 1_000_000)
+    }
 }
 
 internal extension DateComponents {
     
-    func settingHour(_ value: Double) -> DateComponents? {
+    func settingHour(_ value: Double, precision: TimePrecision = .wholeSeconds) -> DateComponents? {
         guard value.isNormal else {
             return nil
+        }
+
+        if precision == .microseconds {
+            return settingMicroseconds(value)
         }
         
         let calculatedHours = floor(value)
@@ -74,6 +102,33 @@ internal extension DateComponents {
         
         return components
     }
+}
+
+private extension DateComponents {
+
+    func settingMicroseconds(_ value: Double) -> DateComponents? {
+        guard abs(value) < 1_000_000_000,
+            let micros = Int64(exactly: floor(value * 3_600_000_000)) else {
+            return nil
+        }
+
+        let perHour = Int64.microsecondsPerHour
+        let perMinute = Int64.microsecondsPerMinute
+        let wholeHours = micros / perHour &- (micros % perHour < 0 ? 1 : 0)
+        let rest = micros &- wholeHours &* perHour
+
+        var components = self
+        components.hour = Int(truncatingIfNeeded: wholeHours)
+        components.minute = Int(truncatingIfNeeded: rest / perMinute)
+        components.second = Int(truncatingIfNeeded: (rest % perMinute) / 1_000_000)
+        components.nanosecond = Int(truncatingIfNeeded: (rest % 1_000_000) &* 1_000)
+        return components
+    }
+}
+
+internal extension Int64 {
+    static let microsecondsPerMinute: Int64 = 60_000_000
+    static let microsecondsPerHour: Int64 = 3_600_000_000
 }
 
 internal extension Calendar {

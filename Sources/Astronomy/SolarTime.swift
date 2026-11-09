@@ -104,29 +104,33 @@ struct SolarTime {
     let transit: DateComponents
     let sunrise: DateComponents
     let sunset: DateComponents
+    private let precision: TimePrecision
 
-    init?(date: DateComponents, coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection = .iterative) {
+    init?(date: DateComponents, coordinates: Coordinates, hourAngleCorrection: HourAngleCorrection = .iterative, precision: TimePrecision = .wholeSeconds) {
         let day = SolarDay(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection)
         let solarAltitude = Angle(-50.0 / 60.0)
         let sunriseTime = day.hoursForSolarAngle(solarAltitude, afterTransit: false)
         let sunsetTime = day.hoursForSolarAngle(solarAltitude, afterTransit: true)
 
-        guard let transitDate = day.date.settingHour(day.transitHours), let sunriseDate = day.date.settingHour(sunriseTime), let sunsetDate = day.date.settingHour(sunsetTime) else {
+        guard let transitDate = day.date.settingHour(day.transitHours, precision: precision),
+            let sunriseDate = day.date.settingHour(sunriseTime, precision: precision),
+            let sunsetDate = day.date.settingHour(sunsetTime, precision: precision) else {
             return nil
         }
 
         self.day = day
+        self.precision = precision
         self.transit = transitDate
         self.sunrise = sunriseDate
         self.sunset = sunsetDate
     }
 
     func timeForSolarAngle(_ angle: Angle, afterTransit: Bool) -> DateComponents? {
-        return day.date.settingHour(day.hoursForSolarAngle(angle, afterTransit: afterTransit))
+        return day.date.settingHour(day.hoursForSolarAngle(angle, afterTransit: afterTransit), precision: precision)
     }
 
     func afternoon(shadowLength: Double) -> DateComponents? {
-        return afternoonHours(shadowLength: shadowLength).flatMap(day.date.settingHour)
+        return afternoonHours(shadowLength: shadowLength).flatMap { day.date.settingHour($0, precision: precision) }
     }
 
     func afternoonHours(shadowLength: Double) -> Double? {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0
+
+- Add `Rounding.startsUpSunriseDown`, which keeps each computed time to the microsecond, rounds sunrise down to its minute, and rounds every other time, sunnah times included, up to the next minute when any part of a minute is past it. It gives the same minutes as `Rounding.startsUpSunriseDown` in adhan-dart 3.1.0, which `Tests/Resources/rounding/vectors.json` pins. `nearest`, `up` and `none` keep their output and their raw values, which `Tests/Resources/rounding/golden_1a1b6e7.tsv` pins over every method, fourteen cities and every day of 2026.
+
 ## 2.3.0
 
 - `PublishedTimetable` loads a published prayer timetable in the `OTT 1` format at runtime from `Data`, with the header checked on `init` and each locality-year decoded on first use. `validateAllRows()` checks every cell once. A malformed file throws `FormatError`, whose `rule` is the `PublishedRule` the bytes break.

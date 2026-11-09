@@ -50,8 +50,9 @@ public struct SunnahTimes {
         }
 
         let nightDuration = nextDayPrayerTimes.fajr.timeIntervalSince(prayerTimes.maghrib)
-        let rounding = prayerTimes.calculationParameters.rounding
-        self.middleOfTheNight = prayerTimes.maghrib.addingTimeInterval(nightDuration / 2).roundedMinute(rounding: rounding)
-        self.lastThirdOfTheNight = prayerTimes.maghrib.addingTimeInterval(nightDuration * (2 / 3)).roundedMinute(rounding: rounding)
+        let rule = RoundingRule(prayerTimes.calculationParameters.rounding)
+        let (half, lastThird) = rule.nightPortions(nightDuration)
+        self.middleOfTheNight = rule.roundedStart(prayerTimes.maghrib.addingTimeInterval(half))
+        self.lastThirdOfTheNight = rule.roundedStart(prayerTimes.maghrib.addingTimeInterval(lastThird))
     }
 }

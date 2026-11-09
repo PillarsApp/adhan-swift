@@ -94,12 +94,12 @@ class MathTests: XCTestCase {
         let cal = Calendar(identifier: Calendar.Identifier.gregorian)
         
         let comps1 = DateComponents(year: 2015, month: 1, day: 1, hour: 10, minute: 2, second: 29)
-        let date1 = cal.date(from: comps1)!.roundedMinute()
+        let date1 = RoundingRule(.nearest).roundedStart(cal.date(from: comps1)!)
         XCTAssertEqual(cal.component(.minute, from: date1), 2)
         XCTAssertEqual(cal.component(.second, from: date1), 0)
         
         let comps2 = DateComponents(year: 2015, month: 1, day: 1, hour: 10, minute: 2, second: 31)
-        let date2 = cal.date(from: comps2)!.roundedMinute()
+        let date2 = RoundingRule(.nearest).roundedStart(cal.date(from: comps2)!)
         XCTAssertEqual(cal.component(.minute, from: date2), 3)
         XCTAssertEqual(cal.component(.second, from: date2), 0)
     }

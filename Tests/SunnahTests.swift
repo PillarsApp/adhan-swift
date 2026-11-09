@@ -213,20 +213,20 @@ class SunnahTests: XCTestCase {
         noneParams.rounding = .none
         let noneExpected = exactSunnahTimes(noneParams)
         let noneSunnah = SunnahTimes(from: noneExpected.prayers)!
-        XCTAssertEqual(noneSunnah.middleOfTheNight, noneExpected.middle.roundedMinute(rounding: .none))
-        XCTAssertEqual(noneSunnah.lastThirdOfTheNight, noneExpected.lastThird.roundedMinute(rounding: .none))
+        XCTAssertEqual(noneSunnah.middleOfTheNight, RoundingRule(.none).roundedStart(noneExpected.middle))
+        XCTAssertEqual(noneSunnah.lastThirdOfTheNight, RoundingRule(.none).roundedStart(noneExpected.lastThird))
 
         // With rounding up, the sunnah times are rounded up just like the prayer times.
         var upParams = CalculationMethod.northAmerica.params
         upParams.rounding = .up
         let upExpected = exactSunnahTimes(upParams)
         let upSunnah = SunnahTimes(from: upExpected.prayers)!
-        XCTAssertEqual(upSunnah.middleOfTheNight, upExpected.middle.roundedMinute(rounding: .up))
-        XCTAssertEqual(upSunnah.lastThirdOfTheNight, upExpected.lastThird.roundedMinute(rounding: .up))
+        XCTAssertEqual(upSunnah.middleOfTheNight, RoundingRule(.up).roundedStart(upExpected.middle))
+        XCTAssertEqual(upSunnah.lastThirdOfTheNight, RoundingRule(.up).roundedStart(upExpected.lastThird))
 
         // The exact last third falls 20 seconds past the minute on this date,
         // so rounding up and rounding to the nearest minute disagree.
-        XCTAssertNotEqual(upSunnah.lastThirdOfTheNight, upExpected.lastThird.roundedMinute(rounding: .nearest))
+        XCTAssertNotEqual(upSunnah.lastThirdOfTheNight, RoundingRule(.nearest).roundedStart(upExpected.lastThird))
     }
 
     func testSunnahTimesNilWhenTomorrowFailsToResolve() {

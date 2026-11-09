@@ -264,9 +264,10 @@ public struct PrayerTimes {
         let tomorrow = cal.dateComponents([.year, .month, .day], from: tomorrowDate)
 
         let hourAngleCorrection = calculationParameters.hourAngleCorrection
+        let rule = RoundingRule(calculationParameters.rounding)
 
-        guard let solarTime = SolarTime(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection),
-            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection),
+        guard let solarTime = SolarTime(date: date, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection, precision: rule.precision),
+            let tomorrowSolarTime = SolarTime(date: tomorrow, coordinates: coordinates, hourAngleCorrection: hourAngleCorrection, precision: rule.precision),
             let sunriseDate = cal.date(from: solarTime.sunrise),
             let sunsetDate = cal.date(from: solarTime.sunset),
             let tomorrowSunrise = cal.date(from: tomorrowSolarTime.sunrise) else {
@@ -377,24 +378,18 @@ public struct PrayerTimes {
 
         // Apply all offsets and rounding to the final times
         return DayResult(
-            fajr: fajr.addingTimeInterval(calculationParameters.adjustments.fajr.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding),
-            sunrise: sunrise.addingTimeInterval(calculationParameters.adjustments.sunrise.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding),
-            dhuhr: dhuhr.addingTimeInterval(calculationParameters.adjustments.dhuhr.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding),
-            asr: asr.addingTimeInterval(calculationParameters.adjustments.asr.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding),
-            maghrib: maghrib.addingTimeInterval(calculationParameters.adjustments.maghrib.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding),
-            isha: isha.addingTimeInterval(calculationParameters.adjustments.isha.timeInterval)
-                .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)
-                .roundedMinute(rounding: calculationParameters.rounding))
+            fajr: rule.roundedStart(fajr.addingTimeInterval(calculationParameters.adjustments.fajr.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval)),
+            sunrise: rule.roundedSunrise(sunrise.addingTimeInterval(calculationParameters.adjustments.sunrise.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval)),
+            dhuhr: rule.roundedStart(dhuhr.addingTimeInterval(calculationParameters.adjustments.dhuhr.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval)),
+            asr: rule.roundedStart(asr.addingTimeInterval(calculationParameters.adjustments.asr.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval)),
+            maghrib: rule.roundedStart(maghrib.addingTimeInterval(calculationParameters.adjustments.maghrib.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval)),
+            isha: rule.roundedStart(isha.addingTimeInterval(calculationParameters.adjustments.isha.timeInterval)
+                .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)))
     }
 
     public func currentPrayer(at time: Date = Date()) -> Prayer? {
@@ -465,35 +460,30 @@ public struct PrayerTimes {
         }
         
         // Apply adjustments and rounding (same as astronomical calculations)
-        let fajr = tempFajr
+        let rule = RoundingRule(calculationParameters.rounding)
+        let fajr = rule.roundedStart(tempFajr
             .addingTimeInterval(calculationParameters.adjustments.fajr.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.fajr.timeInterval))
         
-        let sunrise = tempSunrise
+        let sunrise = rule.roundedSunrise(tempSunrise
             .addingTimeInterval(calculationParameters.adjustments.sunrise.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.sunrise.timeInterval))
         
-        let dhuhr = tempDhuhr
+        let dhuhr = rule.roundedStart(tempDhuhr
             .addingTimeInterval(calculationParameters.adjustments.dhuhr.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.dhuhr.timeInterval))
         
-        let asr = tempAsr
+        let asr = rule.roundedStart(tempAsr
             .addingTimeInterval(calculationParameters.adjustments.asr.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.asr.timeInterval))
         
-        let maghrib = tempMaghrib
+        let maghrib = rule.roundedStart(tempMaghrib
             .addingTimeInterval(calculationParameters.adjustments.maghrib.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.maghrib.timeInterval))
         
-        let isha = tempIsha
+        let isha = rule.roundedStart(tempIsha
             .addingTimeInterval(calculationParameters.adjustments.isha.timeInterval)
-            .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval)
-            .roundedMinute(rounding: calculationParameters.rounding)
+            .addingTimeInterval(calculationParameters.methodAdjustments.isha.timeInterval))
         
         return DayResult(fajr: fajr, sunrise: sunrise, dhuhr: dhuhr, asr: asr, maghrib: maghrib, isha: isha)
     }

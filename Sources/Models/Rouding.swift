@@ -29,4 +29,5 @@ public enum Rounding: String, Codable, CaseIterable {
     case nearest
     case up
     case none
+    case startsUpSunriseDown
 }
